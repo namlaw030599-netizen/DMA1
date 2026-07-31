@@ -8,6 +8,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
  * { margin:0; padding:0; box-sizing:border-box; }
  body { font-family:'Segoe UI',sans-serif; background:#F0F2F5; color:#1a1a2e; display:flex; flex-direction:column; min-height:100vh; }
@@ -86,6 +87,13 @@
  .note-img-btn { position:absolute; bottom:8px; right:8px; width:24px; height:24px; border-radius:50%; background:#2563EB; color:#fff; display:flex; align-items:center; justify-content:center; font-size:12px; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,.3); z-index:2; }
  .note-img-btn:hover { background:#1D4ED8; }
  .note-toolbar { display:flex; align-items:center; gap:2px; margin-bottom:6px; flex-wrap:wrap; padding:4px 6px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:6px; }
+  /* Toolbar toggle */
+  .note-toolbar { position:relative; display:flex; align-items:center; gap:2px; flex-wrap:nowrap; }
+  .note-tb-toggle { flex-shrink:0; background:none; border:1px solid transparent; border-radius:6px; cursor:pointer; padding:4px 6px; color:#64748B; display:flex; align-items:center; transition:background .15s,color .15s; }
+  .note-tb-toggle:hover { background:#EFF6FF; color:#2563EB; border-color:#BFDBFE; }
+  .note-tb-toggle.active { background:#EFF6FF; color:#2563EB; border-color:#2563EB; }
+  .note-tb-tools { display:none; align-items:center; gap:2px; flex-wrap:wrap; }
+  .note-tb-tools.open { display:flex; }
  .note-tb-btn { border:1px solid #CBD5E1; background:#fff; border-radius:4px; padding:3px 7px; font-size:11px; font-weight:700; color:#334155; cursor:pointer; line-height:1; }
  .note-tb-btn:hover { background:#EFF6FF; border-color:#93C5FD; }
  .note-tb-sep { width:1px; height:16px; background:#E2E8F0; margin:0 3px; }
@@ -147,13 +155,19 @@
  .platform-section { margin-bottom:22px; }
  .platform-section-title { display:flex; align-items:center; gap:10px; font-size:16px; font-weight:700; color:#fff; background:#1E3A5F; border-radius:10px; padding:10px 16px; margin-bottom:12px; }
  .platform-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:13px; }
+ .platform-grid > .card { min-width:0; }
  @media(max-width:900px) { .platform-grid { grid-template-columns:1fr; } }
  .editable-table-wrap { margin-top:4px; } .platform-grid .editable-table-wrap { max-height:260px; overflow-y:auto; overflow-x:auto; scrollbar-width:thin; scrollbar-color:#CBD5E1 transparent; } .platform-grid .note-box { max-height:260px; overflow-y:auto; }
  table.editable-table { border-collapse:collapse; width:100%; font-size:12px; font-family:'Aptos',Arial,sans-serif; margin-bottom:6px; }
- .platform-section table.editable-table td, .platform-section table.editable-table td * { font-size:12px !important; font-family:'Aptos',Arial,sans-serif !important; white-space:nowrap !important; word-break:normal !important; overflow-wrap:normal !important; }
+ .platform-section table.editable-table td, .platform-section table.editable-table td * { font-size:12px !important; font-family:'Aptos',Arial,sans-serif !important; white-space:normal !important; word-break:normal !important; overflow-wrap:anywhere !important; }
  .platform-section .note-box, .platform-section .note-box * { font-size:12px !important; font-family:'Aptos',Arial,sans-serif !important; white-space:normal !important; word-break:normal !important; overflow-wrap:normal !important; }
- table.editable-table td { border:1px solid #E2E8F0; padding:6px; min-width:80px; min-height:32px; color:#334155; font-size:12px; font-family:'Aptos',Arial,sans-serif; white-space:nowrap; word-break:normal; overflow-wrap:normal; }
+ table.editable-table td { border:1px solid #E2E8F0; padding:6px; min-width:60px; min-height:32px; color:#334155; font-size:12px; font-family:'Aptos',Arial,sans-serif; white-space:normal; word-break:normal; overflow-wrap:anywhere; }
  table.editable-table td:focus { outline:2px solid #2563EB; outline-offset:-2px; background:#EFF6FF; }
+ table.editable-table { table-layout:fixed; }
+ table.editable-table td { position:relative; }
+ .td-col-resizer { position:absolute; top:0; right:-3px; width:6px; height:100%; cursor:col-resize; z-index:3; user-select:none; touch-action:none; }
+ .td-col-resizer::after { content:''; position:absolute; left:50%; top:10%; transform:translateX(-50%); width:2px; height:80%; background:transparent; border-radius:1px; transition:background .15s; }
+ .td-col-resizer:hover::after, .td-col-resizer.dragging::after { background:rgba(37,99,235,.5); }
  .editable-table-controls { display:flex; gap:6px; flex-wrap:wrap; }
   /* Zalo sub-tabs */
   .za-tabs { display:flex; gap:0; margin-bottom:18px; border-bottom:2px solid #E2E8F0; }
@@ -162,6 +176,83 @@
   .za-tab-btn.active { color:#0068FF; border-bottom-color:#0068FF; background:#EFF6FF; }
  .dash-footer { text-align:center; font-size:11px; color:#94A3B8; padding:10px; }
  ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-track { background:#F1F5F9; } ::-webkit-scrollbar-thumb { background:#CBD5E1; border-radius:4px; }
+
+  /* ══ MOBILE RESPONSIVE ══ */
+  /* Hamburger button (hidden on desktop) */
+  .mob-menu-btn { display:none; background:none; border:none; cursor:pointer; padding:6px 10px; color:#fff; font-size:22px; line-height:1; }
+
+  @media(max-width:768px){
+    /* Topnav */
+    .topnav { padding:0 12px; }
+    .topnav .brand { font-size:14px; }
+    .topnav .brand span { display:none; }
+    .mob-menu-btn { display:inline-flex; align-items:center; }
+
+    /* Layout: stack sidebar below content (or as overlay) */
+    .layout { flex-direction:column; }
+
+    /* Sidebar: hidden by default, slide in as overlay */
+    .sidebar {
+      position:fixed; top:52px; left:-200px; width:200px; min-height:calc(100vh - 52px);
+      z-index:999; transition:left .25s ease; box-shadow:4px 0 16px rgba(0,0,0,.18);
+    }
+    .sidebar.open { left:0; }
+    /* Overlay backdrop */
+    .mob-overlay { display:none; position:fixed; inset:0; top:52px; background:rgba(0,0,0,.35); z-index:998; }
+    .mob-overlay.open { display:block; }
+
+    /* Main content: full width */
+    .main { padding:14px 10px; overflow-x:hidden; }
+    .page { padding:0; }
+
+    /* KPI rows: 2 columns max */
+    .kpi-row-3, .kpi-row-4, .kpi-row-5, .kpi-row-6 { grid-template-columns:repeat(2,1fr) !important; }
+
+    /* Chart grids: stack to 1 column */
+    .chart-grid, .chart-grid-2, .chart-grid-3, .chart-grid-1 { grid-template-columns:1fr !important; }
+    .chart-grid > .card[style*="grid-column:span"] { grid-column:span 1 !important; }
+
+    /* Platform grid: already 1col at 900px, keep */
+    .platform-grid { grid-template-columns:1fr !important; }
+
+    /* Editable table: allow horizontal scroll */
+    .editable-table-wrap { overflow-x:auto !important; -webkit-overflow-scrolling:touch; }
+    table.editable-table { min-width:0; }
+    /* On mobile, allow word wrap in table cells (nowrap causes overflow) */
+    .platform-section table.editable-table td,
+    .platform-section table.editable-table td * { white-space:normal !important; word-break:break-word !important; }
+
+    /* Note boxes: full height on mobile */
+    .note-box { max-height:200px; }
+
+    /* Card padding reduction */
+    .card { padding:12px 10px; }
+    .card-title { font-size:12px; }
+
+    /* Filters: wrap */
+    .tbl-filters, .tbl-controls { flex-wrap:wrap; gap:6px !important; }
+    .filter-select { max-width:100%; }
+
+    /* Zalo tabs */
+    .za-tab-btn { padding:7px 14px; font-size:12px; }
+
+    /* Page header */
+    .page-header h2 { font-size:17px; }
+
+    /* Data table: scrollable */
+    .data-section .tbl-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+
+    /* Note toolbar: wrap on mobile */
+    .note-toolbar { flex-wrap:wrap; gap:4px; }
+
+    /* Export button in topnav */
+    .topnav button[onclick*="exportSavedFile"] { font-size:11px; padding:5px 10px; }
+  }
+
+  @media(max-width:480px){
+    .kpi-row-3, .kpi-row-4, .kpi-row-5, .kpi-row-6 { grid-template-columns:1fr !important; }
+    .kpi-val { font-size:20px; }
+  }
 </style>
 </head>
 <body>
@@ -169,7 +260,9 @@
 <nav class="topnav">
  <div class="brand">HD SAISON <span>Social Media Analytics</span></div>
  <button onclick="exportSavedFile()" style="margin-left:auto;padding:7px 16px;font-size:12px;font-weight:700;background:#fff;color:#1D4ED8;border:none;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:6px">Lưu file</button>
+  <button class="mob-menu-btn" onclick="toggleMobMenu()" aria-label="Menu">☰</button>
 </nav>
+<div class="mob-overlay" id="mob-overlay" onclick="closeMobMenu()"></div>
 
 <div class="layout">
 <aside class="sidebar">
@@ -1277,7 +1370,7 @@ function switchNotePeriod(scope,newPeriod){
   cl.querySelectorAll('.img-handle').forEach(h=>h.remove());
   cl.querySelectorAll('.note-img-wrap').forEach(w=>w.classList.remove('selected'));
   const c=cl.innerHTML.trim();
-  if(c)try{localStorage.setItem(key,cl.innerHTML);}catch(e){}
+  if(c){try{localStorage.setItem(key,cl.innerHTML);}catch(e){} supaSync(key,cl.innerHTML);}
  });
  window.NOTE_PERIOD[scope]=newPeriod;
  // Load notes for new period
@@ -1336,6 +1429,26 @@ function buildFormatToolbar(exec,getTarget){
  getTarget=getTarget||(()=>null);
  const tb=document.createElement('div');
  tb.className='note-toolbar';
+ // Toggle button (pencil)
+ const togBtn=document.createElement('button');
+ togBtn.type='button';togBtn.className='note-tb-toggle';togBtn.title='Công cụ chỉnh văn bản';
+ togBtn.innerHTML='<svg viewBox="0 0 24 24" width="15" height="15"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>';
+ tb.appendChild(togBtn);
+ // Tools container (hidden by default)
+ const tools=document.createElement('div');
+ tools.className='note-tb-tools';
+ tb.appendChild(tools);
+ togBtn.addEventListener('mousedown',e=>e.preventDefault());
+ togBtn.addEventListener('click',e=>{
+  e.stopPropagation();
+  const open=tools.classList.toggle('open');
+  togBtn.classList.toggle('active',open);
+  // Close other open toolbars
+  document.querySelectorAll('.note-tb-tools.open').forEach(t=>{if(t!==tools){t.classList.remove('open');t.closest('.note-toolbar').querySelector('.note-tb-toggle').classList.remove('active');}});
+ });
+ document.addEventListener('click',e=>{
+  if(!tb.contains(e.target)){tools.classList.remove('open');togBtn.classList.remove('active');}
+ });
  // Font size select
  const fsSel=document.createElement('select');
  fsSel.className='note-tb-select font-size-sel';
@@ -1361,14 +1474,14 @@ function buildFormatToolbar(exec,getTarget){
   if(box)box.dispatchEvent(new Event('input'));
   fsSel.value='';
  });
- tb.appendChild(fsSel);
- const sep0=document.createElement('span');sep0.className='note-tb-sep';tb.appendChild(sep0);
- tb.appendChild(noteIconBtn('bold','Đậm',()=>exec('bold')));
- tb.appendChild(noteIconBtn('italic','Nghiêng',()=>exec('italic')));
- tb.appendChild(noteIconBtn('underline','Gạch chân',()=>exec('underline')));
- tb.appendChild(noteIconBtn('strike','Gạch ngang',()=>exec('strikeThrough')));
- const sep1=document.createElement('span');sep1.className='note-tb-sep';tb.appendChild(sep1);
- tb.appendChild(noteDropdown('alignLeft','Căn lề',null,(panel,btn)=>{
+ tools.appendChild(fsSel);
+ const sep0=document.createElement('span');sep0.className='note-tb-sep';tools.appendChild(sep0);
+ tools.appendChild(noteIconBtn('bold','Đậm',()=>exec('bold')));
+ tools.appendChild(noteIconBtn('italic','Nghiêng',()=>exec('italic')));
+ tools.appendChild(noteIconBtn('underline','Gạch chân',()=>exec('underline')));
+ tools.appendChild(noteIconBtn('strike','Gạch ngang',()=>exec('strikeThrough')));
+ const sep1=document.createElement('span');sep1.className='note-tb-sep';tools.appendChild(sep1);
+ tools.appendChild(noteDropdown('alignLeft','Căn lề',null,(panel,btn)=>{
  [['alignLeft','justifyLeft','Trái'],['alignCenter','justifyCenter','Giữa'],['alignRight','justifyRight','Phải']].forEach(([icon,cmd,t])=>{
  const o=document.createElement('button');o.type='button';o.className='note-tb-opt';o.title=t;o.innerHTML=NOTE_ICONS[icon];
  o.addEventListener('mousedown',e=>e.preventDefault());
@@ -1376,7 +1489,7 @@ function buildFormatToolbar(exec,getTarget){
  panel.appendChild(o);
  });
  }));
- tb.appendChild(noteDropdown('bullet','Danh sách',null,(panel,btn)=>{
+ tools.appendChild(noteDropdown('bullet','Danh sách',null,(panel,btn)=>{
  [['bullet','insertUnorderedList','Gạch đầu dòng'],['number','insertOrderedList','Đánh số']].forEach(([icon,cmd,t])=>{
  const o=document.createElement('button');o.type='button';o.className='note-tb-opt';o.title=t;o.innerHTML=NOTE_ICONS[icon];
  o.addEventListener('mousedown',e=>e.preventDefault());
@@ -1384,7 +1497,7 @@ function buildFormatToolbar(exec,getTarget){
  panel.appendChild(o);
  });
  }));
- tb.appendChild(noteDropdown('lineSpacing','Khoảng cách dòng',null,(panel,btn)=>{
+ tools.appendChild(noteDropdown('lineSpacing','Khoảng cách dòng',null,(panel,btn)=>{
  panel.classList.add('note-tb-panel-list');
  [['1','1'],['1.15','1.15'],['1.5','1.5'],['2','2'],['2.5','2.5']].forEach(([label,val])=>{
  const o=document.createElement('button');o.type='button';o.className='note-tb-opt note-tb-opt-text';o.textContent=label;o.title='Khoảng cách dòng '+label;
@@ -1397,7 +1510,7 @@ function buildFormatToolbar(exec,getTarget){
  panel.appendChild(o);
  });
  }));
- const sep2=document.createElement('span');sep2.className='note-tb-sep';tb.appendChild(sep2);
+ const sep2=document.createElement('span');sep2.className='note-tb-sep';tools.appendChild(sep2);
  let curHl='#FEF08A',curFc='#DC2626';
  const hlBtn=noteDropdown('highlight','Màu nền chữ',curHl,(panel,btn)=>{
  NOTE_HL_COLORS.forEach(c=>{
@@ -1414,7 +1527,7 @@ function buildFormatToolbar(exec,getTarget){
  panel.appendChild(sw);
  });
  });
- tb.appendChild(hlBtn);
+ tools.appendChild(hlBtn);
  const fcBtn=noteDropdown('textColor','Màu chữ',curFc,(panel,btn)=>{
  NOTE_TEXT_COLORS.forEach(c=>{
  const sw=document.createElement('button');sw.type='button';sw.className='note-tb-swatch';
@@ -1428,9 +1541,9 @@ function buildFormatToolbar(exec,getTarget){
  panel.appendChild(sw);
  });
  });
- tb.appendChild(fcBtn);
- const sep3=document.createElement('span');sep3.className='note-tb-sep';tb.appendChild(sep3);
- tb.appendChild(noteIconBtn('eraser','Xóa định dạng',()=>exec('removeFormat')));
+ tools.appendChild(fcBtn);
+ const sep3=document.createElement('span');sep3.className='note-tb-sep';tools.appendChild(sep3);
+ tools.appendChild(noteIconBtn('eraser','Xóa định dạng',()=>exec('removeFormat')));
  return tb;
 }
 function buildNoteToolbar(box){
@@ -1449,7 +1562,9 @@ function buildTableToolbar(){
 function saveTableToLS(tbl){
  const id=tbl.dataset.tblId; if(!id)return;
  const rows=[...tbl.querySelectorAll('tbody tr')].map(tr=>[...tr.querySelectorAll('td')].map(td=>td.innerHTML));
- try{localStorage.setItem('dma_tbl_'+id,JSON.stringify({rows,cols:rows[0]?rows[0].length:3}));}catch(e){}
+ const val=JSON.stringify({rows,cols:rows[0]?rows[0].length:3});
+ try{localStorage.setItem('dma_tbl_'+id,val);}catch(e){}
+ supaSync('dma_tbl_'+id,val);
 }
 function loadTableFromLS(tbl){
  const id=tbl.dataset.tblId; if(!id)return;
@@ -1641,6 +1756,7 @@ document.addEventListener('mousedown',e=>{
  document.addEventListener('mousemove',onMove);
  document.addEventListener('mouseup',onUp);
 });
+if(typeof window.supaSync!=='function') window.supaSync=function(){};
 function bindNoteBoxes(){
  const placeholderSeen={};
  document.querySelectorAll('.note-box[contenteditable]').forEach((box)=>{
@@ -1665,7 +1781,9 @@ function bindNoteBoxes(){
  const clone=box.cloneNode(true);
  clone.querySelectorAll('.img-handle').forEach(h=>h.remove());
  clone.querySelectorAll('.note-img-wrap').forEach(w=>w.classList.remove('selected'));
- localStorage.setItem(noteKey(box,parseInt(box.dataset.noteIdx||'0')),clone.innerHTML);
+ const k=noteKey(box,parseInt(box.dataset.noteIdx||'0'));
+ localStorage.setItem(k,clone.innerHTML);
+ supaSync(k,clone.innerHTML);
  }catch(e){}
  });
  box.addEventListener('paste',e=>{
@@ -1742,6 +1860,7 @@ function addTableRow(btn){
 function addTableCol(btn){
  const table=btn.closest('.editable-table-wrap').querySelector('.editable-table');
  table.querySelectorAll('tr').forEach(tr=>{const td=document.createElement('td');td.contentEditable='true';tr.appendChild(td);});
+ initTableColResizers(table);
 }
 function removeTableRow(btn){
  const table=btn.closest('.editable-table-wrap').querySelector('.editable-table');
@@ -1752,7 +1871,74 @@ function removeTableCol(btn){
  const table=btn.closest('.editable-table-wrap').querySelector('.editable-table');
  const rows=table.querySelectorAll('tr');
  if(rows[0].children.length>1) rows.forEach(tr=>tr.lastElementChild.remove());
+ initTableColResizers(table);
 }
+
+function initTableColResizers(tbl){
+ // Setup colgroup with current equal-width cols
+ var cg=tbl.querySelector('colgroup');
+ var firstRow=tbl.querySelector('tr');
+ if(!firstRow) return;
+ var numCols=firstRow.querySelectorAll('td').length;
+ if(!cg){
+  cg=document.createElement('colgroup');
+  tbl.insertBefore(cg,tbl.firstChild);
+ }
+ // Sync col count
+ while(cg.children.length<numCols){var c=document.createElement('col');cg.appendChild(c);}
+ while(cg.children.length>numCols) cg.lastElementChild.remove();
+ // Set equal widths if not yet set in px
+ if(!cg.children[0]||!cg.children[0].style.width){
+  var pct=(100/numCols).toFixed(4)+'%';
+  Array.from(cg.children).forEach(function(c){c.style.width=pct;});
+ }
+ // Remove old resizers
+ tbl.querySelectorAll('.td-col-resizer').forEach(function(r){r.remove();});
+ // Add resizer to first-row tds (all cols except last)
+ var tds=firstRow.querySelectorAll('td');
+ tds.forEach(function(td,ci){
+  if(ci>=numCols-1) return;
+  var r=document.createElement('div');
+  r.className='td-col-resizer';
+  r.addEventListener('pointerdown',function(e){
+   e.preventDefault();e.stopPropagation();
+   r.setPointerCapture(e.pointerId);
+   r.classList.add('dragging');
+   var startX=e.clientX;
+   var colA=cg.children[ci], colB=cg.children[ci+1];
+   var tblW=tbl.getBoundingClientRect().width||tbl.offsetWidth;
+   // Convert current widths to px
+   function getPx(col){
+    var w=col.style.width;
+    if(w.endsWith('px')) return parseFloat(w);
+    if(w.endsWith('%')) return parseFloat(w)/100*tblW;
+    return tblW/numCols;
+   }
+   var startA=getPx(colA), startB=getPx(colB);
+   function onMove(ev){
+    var dx=ev.clientX-startX;
+    var minW=40;
+    var newA=Math.max(minW,startA+dx);
+    var newB=Math.max(minW,startA+startB-newA);
+    newA=startA+startB-newB;
+    colA.style.width=newA+'px';
+    colB.style.width=newB+'px';
+   }
+   function onUp(ev){
+    r.classList.remove('dragging');
+    r.releasePointerCapture(ev.pointerId);
+    r.removeEventListener('pointermove',onMove);
+    r.removeEventListener('pointerup',onUp);
+   }
+   r.addEventListener('pointermove',onMove);
+   r.addEventListener('pointerup',onUp);
+  });
+  td.appendChild(r);
+ });
+}
+document.addEventListener('DOMContentLoaded',function(){
+ document.querySelectorAll('table.editable-table').forEach(function(t){initTableColResizers(t);});
+});
 
 function showPage(id,btn){
  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1980,7 +2166,9 @@ Chart.register({
  const rawMy=(y1+y2)/2;
  const highBarY=Math.min(y1,y2);
  const my=(rawMy-highBarY)<12?rawMy-14:rawMy;
- const pct=((raw[i]-raw[pi])/Math.abs(raw[pi])*100).toFixed(2);
+ const rawPct=raw[pi]===0?null:((raw[i]-raw[pi])/Math.abs(raw[pi])*100);
+ if(rawPct===null||!isFinite(rawPct)||Math.abs(rawPct)>999)continue;
+ const pct=rawPct.toFixed(2);
  const lbl=(pct>=0?'+':'')+pct+'%';
  ctx2.save();
  ctx2.font='700 9px system-ui,sans-serif';
@@ -2001,7 +2189,7 @@ Chart.defaults.plugins.legend.labels.boxWidth=12;
 Chart.defaults.plugins.legend.labels.padding=12;
 Chart.defaults.plugins.tooltip.padding=9;
 Chart.defaults.plugins.tooltip.cornerRadius=8;
-const months=['26A','26B','26C','26D','26E','26F'];
+const months=['26A','26B','26C','26D','26E','26F','26G'];
 // Tổng số video YouTube đăng mới mỗi tháng (số liệu thật, đã loại "Bài đăng" cộng đồng — KHÔNG dùng độ dài bảng Top video)
 // 26F (Tháng 6) chỉ tính đến 11/6 — chưa đủ cả tháng
 const YT_VIDEO_COUNT={}; // computed dynamically in renderYt
@@ -2698,7 +2886,7 @@ const followPlatMeta=[
  const ph=box.dataset.placeholder||'note';
  const key='dma_note_'+ph+'_0';
  const content=box.innerHTML.trim();
- if(content) try{localStorage.setItem(key,box.innerHTML);}catch(e){}
+ if(content){try{localStorage.setItem(key,box.innerHTML);}catch(e){} supaSync(key,box.innerHTML);}
  });
  document.getElementById('ov-comp-tbody').innerHTML=compRows;
  bindNoteBoxes();
@@ -3169,14 +3357,15 @@ function renderYt(m){
 
  // Lượt xem + cluster charts
  const ytIsQ=m>100&&m%10===0;
- const ytIdx=m===110?[0,1,2]:m===120?[3,4,5]:m===130?[6,7,8]:m===140?[9,10,11]:getCumMonths(m).map(mn=>mn-1);
+ const ytIdxRaw=m===110?[0,1,2]:m===120?[3,4,5]:m===130?[6,7,8]:m===140?[9,10,11]:getCumMonths(m).map(mn=>mn-1);
+ const ytIdx=ytIdxRaw.filter(idx=>idx<months.length);
  const ytPeriodLbls=ytIdx.map(idx=>months[idx]);
  let ytPeriodLbls_m0,ytDataByMetric_m0;
- const ytSubByMonth=[0,1,2,3,4,5,6].map(()=>0);
- const ytLikeByMonth=[0,1,2,3,4,5,6].map(()=>0);
+ const ytSubByMonth=Array(7).fill(0);
+ const ytLikeByMonth=Array(7).fill(0);
  DATA.ytv.forEach(v=>{
  const mo=+v.ngay.split('/')[1];
- if(mo>=1&&mo<=6){ ytSubByMonth[mo-1]+=v.sub; ytLikeByMonth[mo-1]+=v.thich; }
+ if(mo>=1&&mo<=7){ ytSubByMonth[mo-1]+=v.sub; ytLikeByMonth[mo-1]+=v.thich; }
  });
  const ytDataByMetric=m===0?{}:{
  sub:ytIdx.map(idx=>ytSubByMonth[idx]),
@@ -3186,11 +3375,11 @@ function renderYt(m){
  // Toàn bộ: monthly from DATA.ytad, cluster by month from DATA.ytav
  const ytadByM={};
  DATA.ytad.forEach(d=>{ytadByM[d.thang]=(ytadByM[d.thang]||0)+d.xem;});
- const ytadMs=Object.keys(ytadByM).map(Number).sort((a,b)=>a-b);
+ const ytadMs=Object.keys(ytadByM).map(Number).sort((a,b)=>a-b).filter(mo=>mo<=months.length);
  chYtViews=buildTtatClusterChart('yt-views',chYtViews,YT_VIEWS_METRIC,ytadMs.map(mo=>months[mo-1]),{views:ytadMs.map(mo=>ytadByM[mo]||0)});
  const ytavSubM={},ytavLikeM={};
  DATA.ytav.forEach(v=>{const mo=+v.ngay.split('/')[1];ytavSubM[mo]=(ytavSubM[mo]||0)+(v.sub||0);ytavLikeM[mo]=(ytavLikeM[mo]||0)+(v.thich||0);});
- const ytavMs=Object.keys(ytavSubM).map(Number).sort((a,b)=>a-b);
+ const ytavMs=Object.keys(ytavSubM).map(Number).sort((a,b)=>a-b).filter(mo=>mo<=months.length);
  chYtCluster=buildTtatClusterChart('yt-cluster',chYtCluster,YT_METRICS,ytavMs.map(mo=>months[mo-1]),{sub:ytavMs.map(mo=>ytavSubM[mo]||0),thich:ytavMs.map(mo=>ytavLikeM[mo]||0)});
  } else if(ytIsQ){
  const q=(m===110)?1:(m-100)/10;
@@ -3205,7 +3394,7 @@ function renderYt(m){
  }
  chYtViews=buildViewsChart('yt-views',chYtViews,ytVLbls,ytVData);
  } else {
- chYtViews=buildTtatClusterChart('yt-views',chYtViews,YT_VIEWS_METRIC,ytPeriodLbls,{views:ytIdx.map(idx=>OV.ytViews[idx])});
+ chYtViews=buildTtatClusterChart('yt-views',chYtViews,YT_VIEWS_METRIC,ytPeriodLbls,{views:ytIdx.map(idx=>OV.ytViews[idx]||0)});
  }
  if(m!==0) chYtCluster=buildTtatClusterChart('yt-cluster',chYtCluster,YT_METRICS,ytPeriodLbls,ytDataByMetric);
 }
@@ -3286,7 +3475,7 @@ function renderZav(m){
  const followRadii=FOLLOW_MONTHS.map((_,i)=>i===m?8:5);
  if(!chZaFollow){
  chZaFollow=new Chart(document.getElementById('za-follow-chart'),{type:'line',data:{labels:FOLLOW_MONTHS,datasets:[
- {label:'Zalo Follower',data:FOLLOW.zaloVideo.hd,borderColor:'#FFC700',backgroundColor:'rgba(255,199,0,0.15)',fill:true,tension:0.3,pointRadius:followRadii,pointBackgroundColor:'#D97706',datalabels:{...dl(v=>v.toLocaleString('vi')),align:'top',color:'#D97706'}}
+ {label:'Zalo Follower',data:FOLLOW.zaloVideo.hd,borderColor:'#FFC700',backgroundColor:'rgba(255,199,0,0.15)',fill:true,tension:0.3,pointRadius:followRadii,pointBackgroundColor:'#D97706',_midLabel:true,datalabels:{...dl(v=>v.toLocaleString('vi')),align:'top',color:'#D97706'}}
  ]},options:{...co(v=>v.toLocaleString('vi')),plugins:{legend:{display:false}}}});
  } else {
  chZaFollow.data.datasets[0].pointRadius=followRadii;
@@ -3373,7 +3562,7 @@ function renderZap(m){
  const followRadiiZap=FOLLOW_MONTHS.map((_,i)=>i===m?8:5);
  if(!chZapFollow){
  chZapFollow=new Chart(document.getElementById('zap-follow-chart'),{type:'line',data:{labels:FOLLOW_MONTHS,datasets:[
- {label:'Zalo OA Follower',data:FOLLOW.zalo.hd,borderColor:'#CA8A04',backgroundColor:'rgba(202,138,4,0.15)',fill:true,tension:0.3,pointRadius:followRadiiZap,pointBackgroundColor:'#92400E',datalabels:{...dl(v=>v.toLocaleString('vi')),align:'top',color:'#92400E'}}
+ {label:'Zalo OA Follower',data:FOLLOW.zalo.hd,borderColor:'#CA8A04',backgroundColor:'rgba(202,138,4,0.15)',fill:true,tension:0.3,pointRadius:followRadiiZap,pointBackgroundColor:'#92400E',_midLabel:true,datalabels:{...dl(v=>v.toLocaleString('vi')),align:'top',color:'#92400E'}}
  ]},options:{...co(v=>v.toLocaleString('vi')),plugins:{legend:{display:false}}}});
  } else {
  chZapFollow.data.datasets[0].pointRadius=followRadiiZap;
@@ -3417,6 +3606,26 @@ function switchZaTab(tab) {
   // Trigger chart resize so charts in the newly visible tab render correctly
   setTimeout(function() { window.dispatchEvent(new Event('resize')); }, 50);
 }
+
+// ── Mobile sidebar toggle ──────────────────────────────────────────────────
+function toggleMobMenu() {
+  var sb = document.querySelector('.sidebar');
+  var ov = document.getElementById('mob-overlay');
+  var open = sb.classList.toggle('open');
+  if (ov) ov.classList.toggle('open', open);
+}
+function closeMobMenu() {
+  document.querySelector('.sidebar').classList.remove('open');
+  var ov = document.getElementById('mob-overlay');
+  if (ov) ov.classList.remove('open');
+}
+// Close menu when a nav button is clicked on mobile
+document.querySelectorAll('.nav-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    if (window.innerWidth <= 768) closeMobMenu();
+  });
+});
+
 
 // ── Note-box: default font Aptos 12px when typing ─────────────────────────
 document.querySelectorAll('.note-box[contenteditable]').forEach(function(nb) {
@@ -3490,6 +3699,86 @@ function exportSavedFile(){
  a.remove();
  setTimeout(()=>URL.revokeObjectURL(url),3000);
 }
+
+// ── Supabase shared sync ──────────────────────────────────────────────────────
+(function(){
+  var SUPA_URL='https://hiaehhrlidjrezrlbyux.supabase.co';
+  var SUPA_KEY='sb_publishable_HjBtqmrh8YTF4yP5x6z7UQ_CTFeVRh4';
+  var _q={};
+  var _activeEl=null;
+
+  function getClient(){
+    if(!window._supaClient){
+      if(!window.supabase){return null;}
+      window._supaClient=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+    }
+    return window._supaClient;
+  }
+
+  // Public: called directly from save functions (debounced 800ms)
+  window.supaSync=function(key,val){
+    clearTimeout(_q[key]);
+    _q[key]=setTimeout(function(){
+      var cl=getClient(); if(!cl)return;
+      cl.from('dashboard_data')
+        .upsert({key:key,value:val,updated_at:new Date().toISOString()},{onConflict:'key'})
+        .then(function(r){ if(r.error) console.warn('supaSync error',r.error); })
+        .catch(function(e){ console.warn('supaSync catch',e); });
+    },800);
+  };
+
+  // Track focused element to avoid overwriting while user is typing
+  document.addEventListener('focusin',function(e){_activeEl=e.target;});
+  document.addEventListener('focusout',function(){_activeEl=null;});
+
+  // Apply a row from Supabase into localStorage + DOM
+  function applyToUI(key,value){
+    if(value==null||value===localStorage.getItem(key)) return;
+    localStorage.setItem(key,value);
+    if(key.startsWith('dma_note_')){
+      var seen={};
+      document.querySelectorAll('.note-box[contenteditable]').forEach(function(box){
+        var ph=box.dataset.placeholder||'note';
+        var idx=seen[ph]||0; seen[ph]=idx+1;
+        var bKey=typeof noteKey==='function'?noteKey(box,idx):('dma_note_'+ph+'_'+idx);
+        if(bKey===key&&box!==_activeEl){
+          box.innerHTML=value;
+          if(typeof wrapBareImages==='function') wrapBareImages(box);
+        }
+      });
+    } else if(key.startsWith('dma_tbl_')){
+      var id=key.replace('dma_tbl_','');
+      var tbl=document.querySelector('table.editable-table[data-tbl-id="'+id+'"]');
+      if(tbl&&!tbl.contains(_activeEl)){
+        if(typeof loadTableFromLS==='function') loadTableFromLS(tbl);
+        if(typeof initTableColResizers==='function') initTableColResizers(tbl);
+      }
+    }
+  }
+
+  // Load all data from Supabase on startup
+  async function initialLoad(){
+    var cl=getClient(); if(!cl)return;
+    try{
+      var res=await cl.from('dashboard_data').select('key,value').neq('key','_test_connection');
+      if(res.data) res.data.forEach(function(row){applyToUI(row.key,row.value);});
+    }catch(e){console.warn('Supabase initial load error:',e);}
+  }
+
+  // Poll every 5s for changes from other users
+  async function poll(){
+    var cl=getClient(); if(!cl)return;
+    try{
+      var res=await cl.from('dashboard_data').select('key,value').neq('key','_test_connection');
+      if(res.data) res.data.forEach(function(row){applyToUI(row.key,row.value);});
+    }catch(e){}
+  }
+
+  window.addEventListener('load',function(){
+    initialLoad().then(function(){ setInterval(poll,5000); });
+  });
+})();
+
 </script>
 </body>
 </html>
