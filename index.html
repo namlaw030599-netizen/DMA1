@@ -3888,6 +3888,9 @@ function exportSavedFile(){
   document.getElementById('imod-preview').innerHTML='';
   document.getElementById('imod-status').textContent='';
   document.getElementById('imod-confirm-btn').style.display='none';
+  document.getElementById('imod-file-name').style.display='none';
+  document.getElementById('imod-drop-text').innerHTML='<b>Bấm để chọn file</b> hoặc kéo thả vào đây';
+  document.getElementById('imod-file-input').value='';
   document.querySelectorAll('.imod-ds').forEach(function(el){el.classList.toggle('active',el.dataset.ds===dsKey);});
   var cfg=IMOD_CFG[dsKey];
   var reqCols=cfg.cols.filter(function(c){return c.k==='ngay'||c.k==='xem'||c.k==='tieude';}).map(function(c){return c.lbl;});
@@ -3908,6 +3911,38 @@ function exportSavedFile(){
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(url);},2000);
  };
 
+ window.imodHandleDrop=function(e){
+  e.preventDefault();
+  document.getElementById('imod-dropzone').classList.remove('drag');
+  var f=e.dataTransfer.files[0];
+  if(f) imodHandleFile(f);
+ };
+ window.imodHandleFile=function(file){
+  if(!file) return;
+  var ext=file.name.split('.').pop().toLowerCase();
+  var nameEl=document.getElementById('imod-file-name');
+  nameEl.textContent='📄 '+file.name;
+  nameEl.style.display='inline-block';
+  document.getElementById('imod-drop-text').innerHTML='<b>File đã chọn</b> — bấm để đổi file';
+  document.getElementById('imod-status').textContent='Đang đọc file...';
+  var reader=new FileReader();
+  if(ext==='csv'){
+   reader.onload=function(ev){
+    document.getElementById('imod-paste').value=ev.target.result;
+    imodParse();
+   };
+   reader.readAsText(file,'UTF-8');
+  } else {
+   reader.onload=function(ev){
+    var wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+    var ws=wb.Sheets[wb.SheetNames[0]];
+    var tsv=XLSX.utils.sheet_to_csv(ws,{FS:'\t'});
+    document.getElementById('imod-paste').value=tsv;
+    imodParse();
+   };
+   reader.readAsArrayBuffer(file);
+  }
+ };
  window.imodParse=function(){
   var text=document.getElementById('imod-paste').value.trim();
   if(!text){document.getElementById('imod-status').textContent='⚠️ Chưa có dữ liệu!';return;}
@@ -4055,15 +4090,55 @@ function exportSavedFile(){
 
  window.imodConfirm=function(){
   if(!_rows||!_rows.length) return;
-  var mode=document.querySelector('input[name="imod-mode"]:checked').value;
   if(!DATA[_ds]) DATA[_ds]=[];
   var arr=DATA[_ds];
-  if(mode==='overwrite'){
-   var newDates=new Set(_rows.map(function(r){return r.ngay;}));
-   var kept=arr.filter(function(r){return !newDates.has(r.ngay);});
-   arr.length=0; kept.forEach(function(r){arr.push(r);});
-  }
+
+  // Xác định quý hiện tại
+  var now=new Date();
+  var curYear=now.getFullYear();
+  var curQ=Math.ceil((now.getMonth()+1)/3);
+
+  // Tạo bản sao với thang thật để đẩy vào *ad (cho chart Toàn bộ)
+  // *ad cần thang thật vì Zalo/FB chart lọc theo thang > 0
+  var rowsForAd=_rows.map(function(r){return Object.assign({},r);});
+
+  // Main array: completed quarter → thang=0 (ẩn khỏi bộ lọc quý trong bảng)
+  _rows.forEach(function(r){
+   var parts=r.ngay.split('/');
+   var rowYear=+parts[2]; var rowMonth=+parts[1];
+   var rowQ=Math.ceil(rowMonth/3);
+   var completed=(rowYear<curYear)||(rowYear===curYear&&rowQ<curQ);
+   if(completed) r.thang=0;
+  });
+
+  // Ghi đè theo ngày vào main array
+  var newDates=new Set(_rows.map(function(r){return r.ngay;}));
+  var kept=arr.filter(function(r){return !newDates.has(r.ngay);});
+  arr.length=0; kept.forEach(function(r){arr.push(r);});
   _rows.forEach(function(r){arr.push(r);});
+
+  // Cập nhật *ad arrays để chart "Toàn bộ" nhận đúng data
+  // fb→fbad, ytd→ytad, zad→zaad
+  var adKey={fb:'fbad',ytd:'ytad',zad:'zaad'}[_ds];
+  if(adKey&&DATA[adKey]){
+   var adDates=new Set(rowsForAd.map(function(r){return r.ngay;}));
+   var adKept=DATA[adKey].filter(function(r){return !adDates.has(r.ngay);});
+   DATA[adKey]=adKept.concat(rowsForAd);
+   DATA[adKey].sort(function(a,b){
+    var da=a.ngay.split('/'),db=b.ngay.split('/');
+    return new Date(+da[2],+da[1]-1,+da[0])-new Date(+db[2],+db[1]-1,+db[0]);
+   });
+  }
+  // zaad = DATA.zad ∪ ZA_DAILY_NEW — rebuild khi import vào zad
+  if(_ds==='zad'&&typeof ZA_DAILY_NEW!=='undefined'){
+   DATA.zaad=[...DATA.zad,...ZA_DAILY_NEW.filter(function(r){
+    return !DATA.zad.some(function(z){return z.ngay===r.ngay;});
+   })];
+   DATA.zaad.sort(function(a,b){
+    var da=a.ngay.split('/'),db=b.ngay.split('/');
+    return new Date(+da[2],+da[1]-1,+da[0])-new Date(+db[2],+db[1]-1,+db[0]);
+   });
+  }
   arr.sort(function(a,b){
    var da=a.ngay.split('/'),db=b.ngay.split('/');
    return new Date(+da[2],+da[1]-1,+da[0])-new Date(+db[2],+db[1]-1,+db[0]);
@@ -4319,8 +4394,14 @@ function exportSavedFile(){
 #imod-colguide{background:#F0F9FF;border:1px solid #BAE6FD;border-radius:8px;padding:10px 14px;font-size:11.5px;color:#0369A1;line-height:1.8;flex-shrink:0;}
 #imod-colguide b{color:#1E293B;font-size:12px;}
 .imod-pill{display:inline-block;background:#DBEAFE;color:#1D4ED8;border-radius:4px;padding:1px 7px;margin:1px 3px 1px 0;font-size:10.5px;font-weight:600;}
-#imod-paste{width:100%;height:110px;border:1.5px dashed #CBD5E1;border-radius:8px;padding:10px;font-size:12px;font-family:monospace;color:#334155;resize:none;outline:none;box-sizing:border-box;flex-shrink:0;transition:border-color .15s;}
-#imod-paste:focus{border-color:#3B82F6;border-style:solid;}
+#imod-dropzone{border:2px dashed #93C5FD;border-radius:10px;padding:22px 16px;text-align:center;cursor:pointer;background:#F0F9FF;transition:all .15s;flex-shrink:0;}
+#imod-dropzone:hover,#imod-dropzone.drag{border-color:#3B82F6;background:#DBEAFE;}
+#imod-drop-icon{font-size:28px;margin-bottom:6px;}
+#imod-drop-text{font-size:13px;color:#1E40AF;}
+#imod-drop-sub{font-size:11px;color:#64748B;margin-top:3px;}
+#imod-file-name{margin-top:8px;font-size:12px;font-weight:600;color:#16A34A;background:#DCFCE7;border-radius:6px;padding:4px 12px;display:inline-block;}
+#imod-paste{width:100%;height:60px;border:1px solid #E2E8F0;border-radius:8px;padding:8px 10px;font-size:12px;font-family:monospace;color:#334155;resize:none;outline:none;box-sizing:border-box;flex-shrink:0;transition:border-color .15s;background:#FAFBFC;}
+#imod-paste:focus{border-color:#3B82F6;}
 #imod-opts{display:flex;align-items:center;gap:14px;font-size:12px;color:#475569;flex-shrink:0;}
 #imod-opts b{color:#1E293B;}
 #imod-opts label{display:flex;align-items:center;gap:5px;cursor:pointer;}
@@ -4371,12 +4452,16 @@ function exportSavedFile(){
    </div>
    <div id="imod-right">
     <div id="imod-colguide">Chọn dataset bên trái để xem hướng dẫn.</div>
-    <textarea id="imod-paste" placeholder="1. Mở file export từ TikTok / Facebook / YouTube / Zalo trong Excel&#10;2. Chọn toàn bộ bảng (bao gồm hàng tiêu đề cột) → Ctrl+C&#10;3. Dán vào đây → Ctrl+V&#10;Dashboard sẽ tự nhận diện tên cột, không cần sắp xếp lại."></textarea>
+    <div id="imod-dropzone" onclick="document.getElementById('imod-file-input').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="imodHandleDrop(event)">
+     <input type="file" id="imod-file-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="imodHandleFile(this.files[0])">
+     <div id="imod-drop-icon">📂</div>
+     <div id="imod-drop-text"><b>Bấm để chọn file</b> hoặc kéo thả vào đây</div>
+     <div id="imod-drop-sub">Hỗ trợ: Excel (.xlsx, .xls) và CSV (.csv)</div>
+     <div id="imod-file-name" style="display:none"></div>
+    </div>
+    <textarea id="imod-paste" placeholder="Hoặc dán dữ liệu trực tiếp vào đây (Ctrl+V từ Excel)..." style="height:60px"></textarea>
     <div id="imod-opts">
-     <b>Chế độ:</b>
-     <label><input type="radio" name="imod-mode" value="append" checked> Thêm mới (giữ data cũ)</label>
-     <label><input type="radio" name="imod-mode" value="overwrite"> Ghi đè theo ngày</label>
-     <button onclick="imodDownloadTemplate()" style="margin-left:auto;padding:4px 10px;font-size:11px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;cursor:pointer;color:#475569">📋 Tải template</button>
+     <button onclick="imodDownloadTemplate()" style="padding:4px 10px;font-size:11px;background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;cursor:pointer;color:#475569">📋 Template</button>
     </div>
     <div id="imod-mapping"></div>
     <div id="imod-preview"></div>
