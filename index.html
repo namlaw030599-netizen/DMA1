@@ -318,6 +318,7 @@
  <text x="18" y="19" font-family="Arial,Helvetica,sans-serif" font-size="8.5" font-weight="700" fill="#0068FF" text-anchor="middle">Zalo</text>
  </svg></span> Zalo</button>
  <button class="nav-btn" onclick="showPage('platform-analysis',this)">Phân tích nền tảng</button>
+ <button class="nav-btn" onclick="showPage('competitor',this)"><span class="icon">🔍</span> Đối thủ TikTok</button>
 </aside>
 
 <main class="main">
@@ -1406,8 +1407,139 @@
  </div>
 </section>
 
-</main>
+<!-- ═══════ COMPETITOR ANALYSIS ═══════ -->
+<section class="page" id="page-competitor">
+<div class="page-header"><h2>Phân tích đối thủ TikTok</h2><p>So sánh nhiều kênh — Nhập JSON từ Apify (clockworks/tiktok-video-scraper)</p></div>
+
+<!-- INPUT PANEL -->
+<div id="comp-input-panel">
+
+<!-- Settings row -->
+<div class="card" style="margin-bottom:14px">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+<div><label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:4px">Kênh của mình</label><input id="comp-own" class="filter-select" style="width:100%;box-sizing:border-box" value="@hdsaison"></div>
+<div><label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:4px">Ngành</label><input id="comp-industry" class="filter-select" style="width:100%;box-sizing:border-box" value="Tài chính tiêu dùng"></div>
+<div><label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:4px">Múi giờ</label>
+<select id="comp-tz" class="filter-select" style="width:100%;box-sizing:border-box">
+<option value="7">UTC+7 (Việt Nam)</option><option value="8">UTC+8</option><option value="0">UTC+0</option>
+</select></div>
 </div>
+</div>
+
+<!-- Competitor slots -->
+<div id="comp-slots-wrap" style="display:grid;gap:12px;margin-bottom:14px"></div>
+
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+<button onclick="compAddSlot()" style="padding:7px 16px;background:#F1F5F9;border:none;border-radius:8px;font-size:12px;font-weight:600;color:#475569;cursor:pointer">＋ Thêm đối thủ</button>
+<button onclick="compLoadSample()" style="padding:7px 16px;background:#F1F5F9;border:none;border-radius:8px;font-size:12px;font-weight:600;color:#475569;cursor:pointer">📋 Dữ liệu mẫu</button>
+<div id="comp-error" style="color:#EF4444;font-size:12px;display:none"></div>
+<button onclick="compAnalyzeAll()" style="padding:8px 24px;background:#2563EB;border:none;border-radius:8px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;margin-left:auto">▶ Phân tích tất cả</button>
+</div>
+</div>
+
+<!-- REPORT PANEL -->
+<div id="comp-report" style="display:none">
+
+<!-- Back + Report tabs -->
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+<button onclick="compBackToInput()" style="padding:6px 14px;background:#F1F5F9;border:none;border-radius:8px;font-size:12px;font-weight:600;color:#475569;cursor:pointer;flex-shrink:0">← Nhập lại</button>
+<div id="comp-report-tabs" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+</div>
+
+<!-- COMPARISON VIEW -->
+<div id="comp-view-compare" style="display:none">
+<div class="chart-grid chart-grid-2" style="margin-bottom:16px">
+<div class="card">
+<div class="card-title">So sánh TB lượt xem / video</div>
+<div style="height:240px"><canvas id="comp-cmp-views"></canvas></div>
+</div>
+<div class="card">
+<div class="card-title">So sánh ER trung bình (%)</div>
+<div style="height:240px"><canvas id="comp-cmp-er"></canvas></div>
+</div>
+</div>
+<div class="card" style="margin-bottom:16px">
+<div class="card-title">Bảng tổng hợp đối thủ</div>
+<div style="overflow-x:auto">
+<table style="width:100%;border-collapse:collapse;font-size:12px">
+<thead><tr style="background:#F8FAFC">
+<th style="padding:8px 12px;text-align:left;color:#64748B;font-weight:700;border-bottom:2px solid #E2E8F0">Kênh</th>
+<th style="padding:8px 12px;text-align:right;color:#64748B;font-weight:700;border-bottom:2px solid #E2E8F0">Số video</th>
+<th style="padding:8px 12px;text-align:right;color:#64748B;font-weight:700;border-bottom:2px solid #E2E8F0">TB view</th>
+<th style="padding:8px 12px;text-align:right;color:#64748B;font-weight:700;border-bottom:2px solid #E2E8F0">Trung vị</th>
+<th style="padding:8px 12px;text-align:right;color:#64748B;font-weight:700;border-bottom:2px solid #E2E8F0">ER TB</th>
+<th style="padding:8px 12px;text-align:right;color:#64748B;font-weight:700;border-bottom:2px solid #E2E8F0">TB thời lượng</th>
+<th style="padding:8px 12px;text-align:right;color:#64748B;font-weight:700;border-bottom:2px solid #E2E8F0">Tần suất</th>
+<th style="padding:8px 12px;text-align:left;color:#64748B;font-weight:700;border-bottom:2px solid #E2E8F0">Hashtag chính</th>
+</tr></thead>
+<tbody id="comp-cmp-table"></tbody>
+</table>
+</div>
+</div>
+<div class="chart-grid chart-grid-2" style="margin-bottom:16px">
+<div class="card">
+<div class="card-title">Phân bố thời lượng (giây)</div>
+<div style="height:220px"><canvas id="comp-cmp-dur"></canvas></div>
+</div>
+<div class="card">
+<div class="card-title">Khung giờ đăng (giờ VN)</div>
+<div style="height:220px"><canvas id="comp-cmp-hour"></canvas></div>
+</div>
+</div>
+</div>
+
+<!-- SINGLE COMPETITOR VIEW (reused per competitor) -->
+<div id="comp-view-single" style="display:none">
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+<div><div id="comp-title" style="font-size:17px;font-weight:800;color:#1E3A5F"></div><div id="comp-subtitle" style="font-size:12px;color:#64748B;margin-top:2px"></div></div>
+</div>
+<div class="kpi-grid" id="comp-kpi-grid" style="margin-bottom:16px"></div>
+<div class="chart-grid chart-grid-2" style="margin-bottom:16px">
+<div class="card"><div class="card-title">Lượt xem theo video <span style="font-weight:400;color:#94A3B8;font-size:11px">(sắp xếp giảm dần)</span></div><div style="height:260px"><canvas id="comp-chart-views"></canvas></div></div>
+<div class="card"><div class="card-title">Trụ cột nội dung (content pillars)</div><div style="height:260px"><canvas id="comp-chart-pillars"></canvas></div></div>
+</div>
+<div class="chart-grid chart-grid-3" style="margin-bottom:16px">
+<div class="card"><div class="card-title">Phân bố ER (%)</div><div style="height:200px"><canvas id="comp-chart-er"></canvas></div></div>
+<div class="card"><div class="card-title">Thời lượng (giây)</div><div style="height:200px"><canvas id="comp-chart-dur"></canvas></div></div>
+<div class="card"><div class="card-title">Giờ đăng (giờ VN)</div><div style="height:200px"><canvas id="comp-chart-hour"></canvas></div></div>
+</div>
+<div class="card" style="margin-bottom:16px">
+<div class="card-title">Phân tích Hook — Top 20% vs Bottom 20%</div>
+<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+<thead><tr style="background:#F8FAFC">
+<th style="padding:7px 10px;text-align:left;color:#64748B;font-weight:700;border-bottom:2px solid #E2E8F0">Nhóm</th>
+<th style="padding:7px 10px;text-align:left;color:#64748B;font-weight:700;border-bottom:2px solid #E2E8F0">Hook / Caption mở đầu</th>
+<th style="padding:7px 10px;text-align:right;color:#64748B;font-weight:700;border-bottom:2px solid #E2E8F0">Lượt xem</th>
+<th style="padding:7px 10px;text-align:right;color:#64748B;font-weight:700;border-bottom:2px solid #E2E8F0">ER%</th>
+<th style="padding:7px 10px;text-align:left;color:#64748B;font-weight:700;border-bottom:2px solid #E2E8F0">Tags</th>
+</tr></thead>
+<tbody id="comp-hook-body"></tbody>
+</table></div>
+</div>
+<div class="card" style="margin-bottom:16px"><div class="card-title">🏆 Top 5 viral — Công thức</div><div id="comp-viral-wrap"></div></div>
+<div class="chart-grid chart-grid-2" style="margin-bottom:16px">
+<div class="card"><div class="card-title">Hashtag hay dùng nhất</div>
+<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+<thead><tr style="background:#F8FAFC">
+<th style="padding:6px 10px;text-align:left;color:#64748B;font-weight:700;border-bottom:2px solid #E2E8F0">Hashtag</th>
+<th style="padding:6px 10px;text-align:right;color:#64748B;font-weight:700;border-bottom:2px solid #E2E8F0">Video</th>
+<th style="padding:6px 10px;text-align:right;color:#64748B;font-weight:700;border-bottom:2px solid #E2E8F0">Tổng view</th>
+<th style="padding:6px 10px;text-align:right;color:#64748B;font-weight:700;border-bottom:2px solid #E2E8F0">TB view</th>
+</tr></thead>
+<tbody id="comp-hashtag-body"></tbody>
+</table></div></div>
+<div class="card"><div class="card-title">Chiến lược âm thanh</div>
+<div style="height:160px;display:flex;align-items:center"><canvas id="comp-chart-audio"></canvas></div>
+<div id="comp-audio-detail" style="margin-top:8px;font-size:12px;color:#475569"></div>
+</div>
+</div>
+<div class="card" style="margin-bottom:16px"><div class="card-title">💡 Đề xuất cho <span id="comp-own-lbl"></span></div><div id="comp-reco-wrap" style="font-size:13px;color:#334155;line-height:1.7"></div></div>
+<div class="card" style="background:#FFFBEB;border:1px solid #FDE68A"><div class="card-title" style="color:#92400E">⚠️ Giới hạn dữ liệu</div><div id="comp-limits" style="font-size:12px;color:#78350F;line-height:1.7"></div></div>
+</div>
+
+</div><!-- end comp-report -->
+</section>
+<!-- ═══════ END COMPETITOR ═══════ -->
 
 
 <script>
@@ -4758,6 +4890,410 @@ function exportSavedFile(){
     });
   });
 })();
+
+// ═══════ COMPETITOR ANALYSIS ═══════
+(function(){
+var compCharts={};
+var compResults=[];  // [{name, handle, videos, stats}]
+var compSlots=[];    // [{id, name, handle}]
+var slotCounter=0;
+
+var PRESETS=[
+  {name:'Home Credit',handle:'@homecreditvn'},
+  {name:'FE Credit',handle:'@fecreditvn'},
+  {name:'F88',handle:'@f88.vn'},
+];
+var SLOT_COLORS=['#2563EB','#EF4444','#F59E0B','#10B981','#8B5CF6','#EC4899'];
+
+function fmtV(n){return n>=1e6?(n/1e6).toFixed(2)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':n.toLocaleString('vi');}
+function median(arr){if(!arr.length)return 0;var s=[...arr].sort((a,b)=>a-b);var m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2;}
+function avg(arr){return arr.length?arr.reduce((a,b)=>a+b,0)/arr.length:0;}
+function compErr(msg){var el=document.getElementById('comp-error');el.textContent=msg;el.style.display=msg?'block':'none';}
+function destroyChart(id){if(compCharts[id]){try{compCharts[id].destroy();}catch(e){}delete compCharts[id];}}
+
+// ── Slot management ──────────────────────────────────────
+function renderSlots(){
+  var wrap=document.getElementById('comp-slots-wrap');
+  wrap.innerHTML='';
+  compSlots.forEach(function(slot,idx){
+    var color=SLOT_COLORS[idx%SLOT_COLORS.length];
+    var div=document.createElement('div');
+    div.className='card';
+    div.style.cssText='padding:14px;border-top:3px solid '+color;
+    div.innerHTML=
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">'
+      +'<span style="background:'+color+';color:#fff;border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700">Đối thủ '+(idx+1)+'</span>'
+      +'<input data-slot="'+slot.id+'" data-field="name" class="filter-select" style="flex:1;min-width:130px;font-weight:700" value="'+slot.name+'" placeholder="Tên hiển thị">'
+      +'<input data-slot="'+slot.id+'" data-field="handle" class="filter-select" style="flex:1;min-width:130px" value="'+slot.handle+'" placeholder="@handle">'
+      +(compSlots.length>1?'<button onclick="compRemoveSlot(\''+slot.id+'\')" style="padding:4px 10px;background:#FEE2E2;border:none;border-radius:6px;font-size:11px;font-weight:700;color:#DC2626;cursor:pointer">✕</button>':'')
+      +'</div>'
+      +'<label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:5px">JSON từ Apify</label>'
+      +'<textarea data-slot="'+slot.id+'" data-field="json" style="width:100%;box-sizing:border-box;height:120px;border:1.5px solid #E2E8F0;border-radius:8px;padding:8px;font-size:11px;font-family:monospace;color:#334155;resize:vertical;outline:none" placeholder=\'[{"id":"...","playCount":...}]\'></textarea>'
+      +'<div style="display:flex;gap:8px;margin-top:6px">'
+      +'<label style="padding:5px 12px;background:#F1F5F9;border:none;border-radius:6px;font-size:11px;font-weight:600;color:#475569;cursor:pointer">📁 Upload<input type="file" accept=".json" hidden onchange="compUploadSlot(event,\''+slot.id+'\')"></label>'
+      +'</div>';
+    wrap.appendChild(div);
+    // Bind input changes
+    div.querySelectorAll('[data-slot]').forEach(function(el){
+      el.addEventListener('change',function(){
+        var s=compSlots.find(function(x){return x.id===el.dataset.slot;});
+        if(s)s[el.dataset.field]=el.value;
+      });
+      el.addEventListener('input',function(){
+        var s=compSlots.find(function(x){return x.id===el.dataset.slot;});
+        if(s&&el.dataset.field!=='json')s[el.dataset.field]=el.value;
+      });
+    });
+  });
+}
+
+window.compAddSlot=function(preset){
+  var id='slot'+(++slotCounter);
+  var p=preset||{name:'Đối thủ '+(compSlots.length+1),handle:''};
+  compSlots.push({id:id,name:p.name,handle:p.handle,json:''});
+  renderSlots();
+};
+window.compRemoveSlot=function(id){
+  compSlots=compSlots.filter(function(s){return s.id!==id;});
+  renderSlots();
+};
+window.compUploadSlot=function(e,slotId){
+  var f=e.target.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(ev){
+    var ta=document.querySelector('textarea[data-slot="'+slotId+'"]');
+    if(ta)ta.value=ev.target.result;
+    var s=compSlots.find(function(x){return x.id===slotId;});
+    if(s)s.json=ev.target.result;
+  };
+  r.readAsText(f);
+};
+
+// Load sample into first slot
+window.compLoadSample=function(){
+  var sample=JSON.stringify([
+    {"id":"7001","text":"Vay tiền không cần thế chấp, duyệt 30 phút 🔥 #vaytien #taichinh","playCount":450000,"diggCount":18000,"commentCount":1200,"shareCount":600,"collectCount":3000,"videoMeta":{"duration":45},"musicMeta":{"musicName":"original sound","musicOriginal":true},"createTimeISO":"2026-05-10T02:00:00.000Z","hashtags":[{"name":"vaytien"},{"name":"taichinh"}],"webVideoUrl":"https://tiktok.com/@rival/video/7001"},
+    {"id":"7002","text":"3 sai lầm vay tiêu dùng khiến bạn trả nợ mãi không hết 😱 #taichinh #vaytieudung","playCount":820000,"diggCount":32000,"commentCount":2100,"shareCount":1500,"collectCount":8000,"videoMeta":{"duration":58},"musicMeta":{"musicName":"trending sound","musicOriginal":false},"createTimeISO":"2026-06-01T09:00:00.000Z","hashtags":[{"name":"taichinh"},{"name":"vaytieudung"}],"webVideoUrl":"https://tiktok.com/@rival/video/7002"},
+    {"id":"7003","text":"Lãi suất thật vs lãi suất quảng cáo — bạn đang bị lừa? #taichinh #laithuat","playCount":1200000,"diggCount":55000,"commentCount":4500,"shareCount":3200,"collectCount":15000,"videoMeta":{"duration":62},"musicMeta":{"musicName":"original sound","musicOriginal":true},"createTimeISO":"2026-07-01T03:00:00.000Z","hashtags":[{"name":"taichinh"},{"name":"laithuat"}],"webVideoUrl":"https://tiktok.com/@rival/video/7003"}
+  ],null,2);
+  if(compSlots.length>0){
+    var ta=document.querySelector('textarea[data-slot="'+compSlots[0].id+'"]');
+    if(ta)ta.value=sample;
+    compSlots[0].json=sample;
+  }
+};
+
+// ── Parse Apify JSON ──────────────────────────────────────
+function parseApify(raw,slotEl){
+  // Sync json from textarea
+  if(slotEl){var ta=slotEl.querySelector('textarea[data-field="json"]');if(ta)raw=ta.value;}
+  raw=(raw||'').trim();
+  if(!raw)return null; // skip empty slots
+  var data=JSON.parse(raw);
+  if(!Array.isArray(data))throw new Error('JSON phải là mảng []');
+  var tz=+(document.getElementById('comp-tz').value||7);
+  return data.map(function(v){
+    var plays=+(v.playCount||v.plays||0);
+    var likes=+(v.diggCount||v.likes||0);
+    var comments=+(v.commentCount||v.comments||0);
+    var shares=+(v.shareCount||v.shares||0);
+    var saves=+(v.collectCount||v.savedCount||0);
+    var er=plays>0?((likes+comments+shares+saves)/plays*100):0;
+    var dur=+(v.videoMeta&&v.videoMeta.duration||v.duration||0);
+    var tags=(v.hashtags||[]).map(function(h){return (h.name||h||'').toLowerCase().replace(/^#/,'');}).filter(Boolean);
+    var caption=(v.text||v.desc||'').trim();
+    var hook=caption.split(/[\n.!?]/)[0].substring(0,120).trim();
+    var iso=v.createTimeISO||v.createTime||'';
+    var dt=iso?new Date(iso):null;
+    var hour=dt?((dt.getUTCHours()+tz+24)%24):-1;
+    var original=!!(v.musicMeta&&v.musicMeta.musicOriginal);
+    var musicName=(v.musicMeta&&v.musicMeta.musicName)||'';
+    var url=v.webVideoUrl||v.shareUrl||'';
+    return {id:v.id,caption,hook,plays,likes,comments,shares,saves,er,dur,tags,hour,original,musicName,url,raw:v};
+  });
+}
+
+function computeStats(videos){
+  var allV=videos.map(function(v){return v.plays;});
+  var allER=videos.map(function(v){return v.er;});
+  var hourArr=new Array(24).fill(0);
+  videos.filter(function(v){return v.hour>=0;}).forEach(function(v){hourArr[v.hour]++;});
+  var topTag='';
+  var htMap={};videos.forEach(function(v){v.tags.forEach(function(t){htMap[t]=(htMap[t]||0)+1;});});
+  var topTagArr=Object.entries(htMap).sort(function(a,b){return b[1]-a[1];});
+  if(topTagArr.length)topTag='#'+topTagArr[0][0];
+  var sorted=videos.filter(function(v){return v.raw.createTimeISO;}).map(function(v){return new Date(v.raw.createTimeISO).getTime();}).sort(function(a,b){return a-b;});
+  var freq='—';
+  if(sorted.length>=2){var span=(sorted[sorted.length-1]-sorted[0])/(1000*86400*7)||1;freq=(videos.length/span).toFixed(1)+'/tuần';}
+  return {
+    total:allV.reduce(function(a,b){return a+b;},0),
+    avgV:avg(allV),medV:median(allV),avgER:avg(allER),
+    topHour:hourArr.indexOf(Math.max.apply(null,hourArr)),
+    avgDur:Math.round(avg(videos.map(function(v){return v.dur;}))),
+    topTag:topTag,freq:freq,count:videos.length,
+    htMap:htMap,hourArr:hourArr
+  };
+}
+
+// ── Build pillar chart data ───────────────────────────────
+function buildPillars(videos){
+  var tagCount={};
+  videos.forEach(function(v){v.tags.forEach(function(t){tagCount[t]=(tagCount[t]||0)+1;});});
+  var topTags=Object.entries(tagCount).sort(function(a,b){return b[1]-a[1];}).slice(0,8).map(function(t){return t[0];});
+  var pillars={};
+  videos.forEach(function(v){
+    var matched=topTags.find(function(t){return v.tags.includes(t);});
+    var key=matched||'khác';
+    if(!pillars[key])pillars[key]={count:0,totalViews:0};
+    pillars[key].count++;pillars[key].totalViews+=v.plays;
+  });
+  return Object.entries(pillars).sort(function(a,b){return b[1].totalViews-a[1].totalViews;}).slice(0,6);
+}
+
+// ── Tab management ────────────────────────────────────────
+window.compSwitchTab=function(idx){
+  document.querySelectorAll('#comp-report-tabs button').forEach(function(b,i){
+    b.style.background=i===idx?'#2563EB':'#F1F5F9';
+    b.style.color=i===idx?'#fff':'#475569';
+  });
+  if(idx===0){
+    document.getElementById('comp-view-compare').style.display='';
+    document.getElementById('comp-view-single').style.display='none';
+    buildCompareView();
+  } else {
+    document.getElementById('comp-view-compare').style.display='none';
+    document.getElementById('comp-view-single').style.display='';
+    buildSingleView(compResults[idx-1]);
+  }
+};
+
+// ── Comparison view ───────────────────────────────────────
+function buildCompareView(){
+  var names=compResults.map(function(r){return r.name;});
+  var colors=compResults.map(function(_,i){return SLOT_COLORS[i%SLOT_COLORS.length];});
+
+  destroyChart('cmp-views');
+  compCharts['cmp-views']=new Chart(document.getElementById('comp-cmp-views'),{
+    type:'bar',
+    data:{labels:names,datasets:[{label:'TB view/video',data:compResults.map(function(r){return Math.round(r.stats.avgV);}),backgroundColor:colors,borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return fmtV(v);}}}}}
+  });
+
+  destroyChart('cmp-er');
+  compCharts['cmp-er']=new Chart(document.getElementById('comp-cmp-er'),{
+    type:'bar',
+    data:{labels:names,datasets:[{label:'ER TB (%)',data:compResults.map(function(r){return +r.stats.avgER.toFixed(2);}),backgroundColor:colors,borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{callback:function(v){return v+'%';}}}}}
+  });
+
+  destroyChart('cmp-dur');
+  var durLabels=['<15s','15-30s','30-60s','60-90s','>90s'];
+  function durBuckets(videos){var b=[0,0,0,0,0];videos.forEach(function(v){var d=v.dur;if(d<15)b[0]++;else if(d<30)b[1]++;else if(d<60)b[2]++;else if(d<90)b[3]++;else b[4]++;});return b;}
+  compCharts['cmp-dur']=new Chart(document.getElementById('comp-cmp-dur'),{
+    type:'bar',
+    data:{labels:durLabels,datasets:compResults.map(function(r,i){return{label:r.name,data:durBuckets(r.videos),backgroundColor:SLOT_COLORS[i%SLOT_COLORS.length],borderRadius:4};})},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:10}}}}
+  });
+
+  destroyChart('cmp-hour');
+  compCharts['cmp-hour']=new Chart(document.getElementById('comp-cmp-hour'),{
+    type:'line',
+    data:{labels:Array.from({length:24},function(_,i){return i+'h';}),datasets:compResults.map(function(r,i){return{label:r.name,data:r.stats.hourArr,borderColor:SLOT_COLORS[i%SLOT_COLORS.length],backgroundColor:'transparent',tension:0.3,pointRadius:2};})},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:10}}},scales:{x:{ticks:{font:{size:8}}}}}
+  });
+
+  // Summary table
+  document.getElementById('comp-cmp-table').innerHTML=compResults.map(function(r,i){
+    var s=r.stats;
+    return '<tr style="border-bottom:1px solid #F1F5F9">'
+      +'<td style="padding:9px 12px"><span style="display:inline-block;width:10px;height:10px;background:'+SLOT_COLORS[i%SLOT_COLORS.length]+';border-radius:50%;margin-right:6px"></span><b>'+r.name+'</b><div style="font-size:11px;color:#94A3B8">'+r.handle+'</div></td>'
+      +'<td style="padding:9px 12px;text-align:right">'+s.count+'</td>'
+      +'<td style="padding:9px 12px;text-align:right;font-weight:700">'+fmtV(Math.round(s.avgV))+'</td>'
+      +'<td style="padding:9px 12px;text-align:right">'+fmtV(Math.round(s.medV))+'</td>'
+      +'<td style="padding:9px 12px;text-align:right">'+s.avgER.toFixed(2)+'%</td>'
+      +'<td style="padding:9px 12px;text-align:right">'+s.avgDur+'s</td>'
+      +'<td style="padding:9px 12px;text-align:right">'+s.freq+'</td>'
+      +'<td style="padding:9px 12px;font-size:11px;color:#6366F1">'+s.topTag+'</td>'
+      +'</tr>';
+  }).join('');
+}
+
+// ── Single competitor view ────────────────────────────────
+function buildSingleView(r){
+  var videos=r.videos,s=r.stats,own=document.getElementById('comp-own').value||'@hdsaison';
+  document.getElementById('comp-title').textContent=r.name+' ('+r.handle+')';
+  document.getElementById('comp-subtitle').textContent='Phân tích '+videos.length+' video · Dữ liệu từ Apify';
+  document.getElementById('comp-own-lbl').textContent=own;
+
+  var allViews=videos.map(function(v){return v.plays;});
+  document.getElementById('comp-kpi-grid').innerHTML=[
+    {label:'Tổng lượt xem',val:fmtV(s.total),sub:videos.length+' video'},
+    {label:'TB / video',val:fmtV(Math.round(s.avgV)),sub:'Trung vị: '+fmtV(Math.round(s.medV))},
+    {label:'ER trung bình',val:s.avgER.toFixed(2)+'%',sub:'(Thích+BL+CS+Lưu)/Xem'},
+    {label:'Tần suất đăng',val:s.freq,sub:'Ước tính từ mẫu'},
+    {label:'Video cao nhất',val:fmtV(Math.max.apply(null,allViews)),sub:'Top 1'},
+    {label:'TB thời lượng',val:s.avgDur+'s',sub:'Khuyến nghị TikTok: 30-60s'},
+  ].map(function(k){return '<div class="kpi-card"><div class="kpi-label">'+k.label+'</div><div class="kpi-value">'+k.val+'</div><div class="kpi-sub">'+k.sub+'</div></div>';}).join('');
+
+  var sorted=[...videos].sort(function(a,b){return b.plays-a.plays;});
+  destroyChart('views');
+  compCharts.views=new Chart(document.getElementById('comp-chart-views'),{
+    type:'bar',
+    data:{labels:sorted.map(function(_,i){return '#'+(i+1);}),datasets:[{data:sorted.map(function(v){return v.plays;}),backgroundColor:sorted.map(function(_,i){return i<Math.ceil(videos.length*0.2)?'#10B981':i>=Math.floor(videos.length*0.8)?'#EF4444':'#3B82F6';}),borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){var v=sorted[ctx.dataIndex];return[' '+fmtV(v.plays)+' views',' ER: '+v.er.toFixed(2)+'%',' "'+v.hook.substring(0,50)+'"'];}}}},scales:{x:{ticks:{font:{size:9}}},y:{ticks:{callback:function(v){return fmtV(v);}}}}}
+  });
+
+  var pillars=buildPillars(videos);
+  destroyChart('pillars');
+  compCharts.pillars=new Chart(document.getElementById('comp-chart-pillars'),{
+    type:'bar',
+    data:{labels:pillars.map(function(p){return '#'+p[0];}),datasets:[
+      {label:'Tổng view',data:pillars.map(function(p){return p[1].totalViews;}),backgroundColor:'#6366F1',borderRadius:4,yAxisID:'y'},
+      {label:'Số video',data:pillars.map(function(p){return p[1].count;}),backgroundColor:'#F59E0B',borderRadius:4,yAxisID:'y2'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:10},boxWidth:10}}},scales:{y:{ticks:{callback:function(v){return fmtV(v);}},position:'left'},y2:{position:'right',grid:{drawOnChartArea:false}}}}
+  });
+
+  var erB=[0,0,0,0,0];
+  videos.forEach(function(v){var e=v.er;if(e<1)erB[0]++;else if(e<2)erB[1]++;else if(e<5)erB[2]++;else if(e<10)erB[3]++;else erB[4]++;});
+  destroyChart('er');
+  compCharts.er=new Chart(document.getElementById('comp-chart-er'),{type:'bar',data:{labels:['<1%','1-2%','2-5%','5-10%','>10%'],datasets:[{data:erB,backgroundColor:'#8B5CF6',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{stepSize:1}}}}});
+
+  var durB=[0,0,0,0,0];
+  videos.forEach(function(v){var d=v.dur;if(d<15)durB[0]++;else if(d<30)durB[1]++;else if(d<60)durB[2]++;else if(d<90)durB[3]++;else durB[4]++;});
+  destroyChart('dur');
+  compCharts.dur=new Chart(document.getElementById('comp-chart-dur'),{type:'bar',data:{labels:['<15s','15-30s','30-60s','60-90s','>90s'],datasets:[{data:durB,backgroundColor:'#14B8A6',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{ticks:{stepSize:1}}}}});
+
+  destroyChart('hour');
+  compCharts.hour=new Chart(document.getElementById('comp-chart-hour'),{
+    type:'bar',
+    data:{labels:Array.from({length:24},function(_,i){return i+'h';}),datasets:[{data:s.hourArr,backgroundColor:s.hourArr.map(function(_,h){return(h>=6&&h<=9||h>=11&&h<=13||h>=19&&h<=22)?'#F59E0B':'#94A3B8';}),borderRadius:3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:8}}},y:{ticks:{stepSize:1}}}}
+  });
+
+  // Hook table
+  var n=videos.length,topN=Math.max(1,Math.ceil(n*0.2));
+  var byViews=[...videos].sort(function(a,b){return b.plays-a.plays;});
+  var topVids=byViews.slice(0,topN),botVids=byViews.slice(-topN);
+  var hb=document.getElementById('comp-hook-body');hb.innerHTML='';
+  function hookRow(v,grp,col,bg){
+    var tr=document.createElement('tr');tr.style.background=bg;
+    tr.innerHTML='<td style="padding:7px 10px"><span style="background:'+col+';color:#fff;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700">'+grp+'</span></td>'
+      +'<td style="padding:7px 10px;max-width:300px;color:#334155">'+(v.url?'<a href="'+v.url+'" target="_blank" style="color:inherit">':'')+'<b>'+v.hook.substring(0,90)+(v.hook.length>90?'…':'')+'</b>'+(v.url?'</a>':'')+'</td>'
+      +'<td style="padding:7px 10px;text-align:right;font-weight:700;color:#1E3A5F">'+fmtV(v.plays)+'</td>'
+      +'<td style="padding:7px 10px;text-align:right;color:#475569">'+v.er.toFixed(2)+'%</td>'
+      +'<td style="padding:7px 10px;color:#64748B;font-size:11px">'+v.tags.slice(0,3).map(function(t){return '#'+t;}).join(' ')+'</td>';
+    hb.appendChild(tr);
+  }
+  topVids.forEach(function(v){hookRow(v,'TOP 20%','#10B981','#F0FDF4');});
+  hb.appendChild(Object.assign(document.createElement('tr'),{innerHTML:'<td colspan="5" style="padding:3px 10px;background:#F8FAFC;color:#94A3B8;font-size:10px;font-style:italic">— Bottom 20% —</td>'}));
+  botVids.forEach(function(v){hookRow(v,'BOT 20%','#EF4444','#FFF5F5');});
+
+  // Top 5 viral
+  document.getElementById('comp-viral-wrap').innerHTML=byViews.slice(0,5).map(function(v,i){
+    return '<div style="border-left:4px solid '+(i===0?'#F59E0B':i===1?'#94A3B8':'#CD7F32')+';padding:11px 14px;margin-bottom:8px;background:#FAFAFA;border-radius:0 8px 8px 0">'
+      +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px">'
+      +'<span style="font-size:17px">'+(i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1))+'</span>'
+      +(v.url?'<a href="'+v.url+'" target="_blank" style="font-size:12px;font-weight:700;color:#1E3A5F;text-decoration:none">'+v.hook.substring(0,80)+'…</a>':'<span style="font-size:12px;font-weight:700;color:#1E3A5F">'+v.hook.substring(0,80)+'…</span>')+'</div>'
+      +'<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#475569">'
+      +'<span>👁 <b>'+fmtV(v.plays)+'</b></span><span>❤️ '+fmtV(v.likes)+'</span><span>💬 '+fmtV(v.comments)+'</span><span>↗️ '+fmtV(v.shares)+'</span><span>🔖 '+fmtV(v.saves)+'</span><span>⏱ '+v.dur+'s</span><span>ER <b>'+v.er.toFixed(2)+'%</b></span>'
+      +'<span>🎵 '+(v.original?'Original':'Nhạc: '+v.musicName.substring(0,20))+'</span></div>'
+      +(v.tags.length?'<div style="margin-top:5px;font-size:11px">'+v.tags.slice(0,8).map(function(t){return '<span style="background:#EEF2FF;color:#6366F1;border-radius:4px;padding:1px 6px;margin-right:3px">#'+t+'</span>';}).join('')+'</div>':'')
+      +'</div>';
+  }).join('');
+
+  // Hashtag table
+  var htSorted=Object.entries(s.htMap).sort(function(a,b){return b[1]-a[1];}).slice(0,15);
+  var htViews={};
+  videos.forEach(function(v){v.tags.forEach(function(t){htViews[t]=(htViews[t]||0)+v.plays;});});
+  document.getElementById('comp-hashtag-body').innerHTML=htSorted.map(function(e){
+    return '<tr style="border-bottom:1px solid #F1F5F9"><td style="padding:5px 10px;color:#6366F1;font-weight:600">#'+e[0]+'</td><td style="padding:5px 10px;text-align:right">'+e[1]+'</td><td style="padding:5px 10px;text-align:right">'+fmtV(htViews[e[0]]||0)+'</td><td style="padding:5px 10px;text-align:right">'+fmtV(Math.round((htViews[e[0]]||0)/e[1]))+'</td></tr>';
+  }).join('');
+
+  // Audio
+  var origCount=videos.filter(function(v){return v.original;}).length;
+  destroyChart('audio');
+  compCharts.audio=new Chart(document.getElementById('comp-chart-audio'),{
+    type:'doughnut',
+    data:{labels:['Original sound','Nhạc trending'],datasets:[{data:[origCount,videos.length-origCount],backgroundColor:['#6366F1','#F59E0B'],borderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10}}}}
+  });
+  var topMusic={};videos.forEach(function(v){if(!v.original&&v.musicName){var k=v.musicName.substring(0,40);topMusic[k]=(topMusic[k]||0)+1;}});
+  var topMA=Object.entries(topMusic).sort(function(a,b){return b[1]-a[1];}).slice(0,3);
+  document.getElementById('comp-audio-detail').innerHTML=(topMA.length?'<b>Nhạc hay dùng:</b><br>'+topMA.map(function(e){return '• '+e[0]+' ('+e[1]+'v)';}).join('<br>'):'Chủ yếu dùng original sound');
+
+  // Recommendations
+  document.getElementById('comp-reco-wrap').innerHTML=[
+    '1️⃣ Trụ cột <b>'+s.topTag+'</b> tạo nhiều view nhất — áp dụng chủ đề tương tự cho kênh '+own+'.',
+    '2️⃣ Đối thủ thường đăng lúc <b>'+s.topHour+'h</b> — đăng ±1h để tránh cạnh tranh trực tiếp.',
+    '3️⃣ Thời lượng TB <b>'+s.avgDur+'s</b> — duy trì trong khoảng này để TikTok ưu tiên phân phối.',
+    '4️⃣ ER chuẩn ngành <b>'+s.avgER.toFixed(2)+'%</b> — dùng làm baseline để đánh giá nội dung của mình.',
+    '5️⃣ Hook TOP 20%: câu mở đầu <b>có số liệu cụ thể, câu hỏi, hoặc tình huống gây tò mò</b> — áp dụng khuôn mẫu này.',
+    '6️⃣ '+(origCount>videos.length/2?'Đối thủ ưu tiên <b>original sound</b> — giọng nói thực tế tăng độ tin cậy.':'Đối thủ dùng nhiều <b>nhạc trending</b> — cân nhắc mix original + trending.'),
+    '7️⃣ Bottom 20% của đối thủ = chủ đề đang yếu — đây là <b>khoảng trống</b> cho '+own+' khai thác.',
+  ].map(function(r){return '<p style="margin:0 0 7px 0">'+r+'</p>';}).join('');
+
+  document.getElementById('comp-limits').innerHTML=[
+    '• Transcript chỉ lấy từ âm thanh — video chỉ có chữ màn hình sẽ không có hook text.',
+    '• Mẫu '+videos.length+' video có thể thiên về video nhiều view (nếu lọc "nhiều lượt xem nhất").',
+    '• Không có dữ liệu reach, conversion rate, hay tăng trưởng follower.',
+    '• Tần suất đăng là ước tính từ khoảng thời gian của mẫu.',
+  ].map(function(r){return '<p style="margin:0 0 3px 0">'+r+'</p>';}).join('');
+}
+
+// ── Main analyze ──────────────────────────────────────────
+window.compBackToInput=function(){
+  document.getElementById('comp-report').style.display='none';
+  document.getElementById('comp-input-panel').style.display='';
+};
+
+window.compAnalyzeAll=function(){
+  compErr('');
+  // Sync json from textareas
+  document.querySelectorAll('#comp-slots-wrap textarea[data-field="json"]').forEach(function(ta){
+    var s=compSlots.find(function(x){return x.id===ta.dataset.slot;});
+    if(s)s.json=ta.value;
+  });
+  compResults=[];
+  var errors=[];
+  compSlots.forEach(function(slot,idx){
+    if(!slot.json||!slot.json.trim())return;
+    try{
+      var videos=parseApify(slot.json);
+      if(!videos||!videos.length)return;
+      compResults.push({name:slot.name||('Đối thủ '+(idx+1)),handle:slot.handle||'',videos:videos,stats:computeStats(videos)});
+    }catch(e){errors.push((slot.name||slot.handle||'Slot '+(idx+1))+': '+e.message);}
+  });
+  if(errors.length)compErr(errors.join(' | '));
+  if(!compResults.length){compErr('Chưa có JSON hợp lệ nào. Dán dữ liệu Apify vào ít nhất 1 đối thủ.');return;}
+
+  // Build tabs
+  var tabWrap=document.getElementById('comp-report-tabs');
+  tabWrap.innerHTML='';
+  var tabLabels=['📊 Tổng hợp so sánh'].concat(compResults.map(function(r){return r.name;}));
+  tabLabels.forEach(function(lbl,i){
+    var btn=document.createElement('button');
+    btn.textContent=lbl;
+    btn.style.cssText='padding:6px 14px;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;'+(i===0?'background:#2563EB;color:#fff':'background:#F1F5F9;color:#475569');
+    btn.onclick=function(){window.compSwitchTab(i);};
+    tabWrap.appendChild(btn);
+  });
+
+  document.getElementById('comp-input-panel').style.display='none';
+  document.getElementById('comp-report').style.display='';
+  window.compSwitchTab(0);
+};
+
+// ── Initialize pre-filled slots ───────────────────────────
+PRESETS.forEach(function(p){
+  var id='slot'+(++slotCounter);
+  compSlots.push({id:id,name:p.name,handle:p.handle,json:''});
+});
+document.addEventListener('DOMContentLoaded',function(){renderSlots();});
+// Fallback nếu DOMContentLoaded đã qua
+if(document.readyState!=='loading'){setTimeout(renderSlots,0);}
+})();
+// ═══════ END COMPETITOR ═══════
 
 </script>
 
