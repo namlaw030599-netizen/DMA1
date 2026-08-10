@@ -4060,16 +4060,10 @@ bindTableSave();
    if(e.key==='Escape') document.body.removeChild(ov);
   });
  }
- // Lock all note-boxes on load; add Edit button to each note card
  var editSVG='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
- document.querySelectorAll('.note-box').forEach(function(nb){
-  nb.setAttribute('contenteditable','false');
-  nb.style.cursor='default';
-  // Find the card-title of the parent note-card
-  var noteCard=nb.closest('.note-card');
-  if(!noteCard) return;
-  var titleEl=noteCard.querySelector('.card-title');
-  if(!titleEl) return;
+
+ function addEditBtn(titleEl, onUnlocked){
+  if(!titleEl||titleEl.querySelector('.nc-edit-btn')) return;
   var editBtn=document.createElement('button');
   editBtn.className='nc-edit-btn';
   editBtn.title='Chỉnh sửa';
@@ -4077,19 +4071,37 @@ bindTableSave();
   titleEl.appendChild(editBtn);
   editBtn.addEventListener('click',function(e){
    e.stopPropagation();
-   if(unlocked){
-    nb.setAttribute('contenteditable','true');
-    nb.style.cursor='';
-    nb.focus();
-   } else {
-    showPassPrompt(function(){
-     nb.setAttribute('contenteditable','true');
-     nb.style.cursor='';
-     nb.focus();
-    });
-   }
+   if(unlocked) onUnlocked();
+   else showPassPrompt(onUnlocked);
+  });
+ }
+
+ // Lock all note-boxes; add Edit button
+ document.querySelectorAll('.note-box').forEach(function(nb){
+  nb.setAttribute('contenteditable','false');
+  nb.style.cursor='default';
+  var card=nb.closest('.note-card')||nb.closest('.card');
+  if(!card) return;
+  addEditBtn(card.querySelector('.card-title'),function(){
+   nb.setAttribute('contenteditable','true');
+   nb.style.cursor='';
+   nb.focus();
   });
  });
+
+ // Lock editable tables in Phân tích nền tảng; add Edit button per card
+ var platPage=document.getElementById('page-platform-analysis');
+ if(platPage){
+  platPage.querySelectorAll('.card').forEach(function(card){
+   var cells=card.querySelectorAll('td[contenteditable]');
+   if(!cells.length) return;
+   cells.forEach(function(td){td.setAttribute('contenteditable','false');td.style.cursor='default';});
+   addEditBtn(card.querySelector('.card-title'),function(){
+    cells.forEach(function(td){td.setAttribute('contenteditable','true');td.style.cursor='';});
+    if(cells[0]) cells[0].focus();
+   });
+  });
+ }
 })();
 
 // Sanitize note-box innerHTML: flatten block elements to inline <br>
