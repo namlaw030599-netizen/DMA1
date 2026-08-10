@@ -998,7 +998,7 @@
  </div>
 
  <div class="card data-section">
- <div class="card-title">Danh sách video Zalo <span id="zav-title-count">268</span> video</div>
+ <div class="card-title">Danh sách video Zalo <span id="zav-title-count">268</span> video <button onclick="exportZAV()" style="margin-left:10px;padding:3px 10px;font-size:11px;font-weight:600;background:#16a34a;color:#fff;border:none;border-radius:6px;cursor:pointer">⬇ Xuất Excel</button></div>
  <div class="tbl-controls">
  <input type="text" class="tbl-search" id="zav-search" placeholder="🔍 Tìm tiêu đề..." oninput="filterTable('zav')">
  <label style="font-size:11px;font-weight:700;color:#64748B">Quý</label>
@@ -2702,6 +2702,16 @@ function exportTTV(){
  XLSX.utils.book_append_sheet(wb,ws,'TikTok '+qLbl);
  XLSX.writeFile(wb,'TikTok_'+qLbl.replace(/\s/g,'_')+'.xlsx');
 }
+function exportZAV(){
+ const rows=STATE['zav']?STATE['zav'].filtered:DATA.zaav;
+ const headers=['STT','Ngày','Tháng','Tiêu đề','Lượt xem','Thích','Chia sẻ','Bình luận','Tổng TG xem (s)','TB TG xem (s)','Tỉ lệ xem (%)'];
+ const data=[headers,...rows.map((r,i)=>[i+1,r.ngay,r.thang,r.tieude,r.xem,r.thich,r.chiase,r.binhluan,r.tongtgxem,r.tbtgxem,r.tile])];
+ const ws=XLSX.utils.aoa_to_sheet(data);
+ ws['!cols']=[{wch:5},{wch:12},{wch:7},{wch:80},{wch:12},{wch:8},{wch:9},{wch:10},{wch:16},{wch:15},{wch:13}];
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,ws,'Zalo Video');
+ XLSX.writeFile(wb,'Zalo_Danh_Sach_Video.xlsx');
+}
 function exportZAP(){
  const rows=STATE['zap']?STATE['zap'].filtered:DATA.zap;
  const headers=['STT','Ngày xuất bản','Tên bài viết','Lượt xem','Share','Trạng thái'];
@@ -3758,29 +3768,30 @@ const zaLike=zavDays.reduce((a,d)=>a+d.thich,0), zaCs=zavDays.reduce((a,d)=>a+d.
 
  const zaIsQ=m>100&&m%10===0;
  if(m===0){
- // Toàn bộ: monthly from DATA.zaad
- const zaadByM={};
- DATA.zaad.forEach(d=>{if(d.thang>0)zaadByM[d.thang]=(zaadByM[d.thang]||0)+d.xem;});
- const zaadMs=Object.keys(zaadByM).map(Number).sort((a,b)=>a-b);
- chZaMonthly=buildTtatClusterChart('za-monthly',chZaMonthly,ZA_MONTHLY_METRICS,zaadMs.map(mo=>months[mo-1]),{video:zaadMs.map(mo=>zaadByM[mo]||0)});
+ // Toàn bộ: monthly from DATA.zaav (video views)
+ const zaavByM={};
+ DATA.zaav.forEach(d=>{if(d.thang>0)zaavByM[d.thang]=(zaavByM[d.thang]||0)+d.xem;});
+ const zaavMs=Object.keys(zaavByM).map(Number).sort((a,b)=>a-b);
+ chZaMonthly=buildTtatClusterChart('za-monthly',chZaMonthly,ZA_MONTHLY_METRICS,zaavMs.map(mo=>months[mo-1]),{video:zaavMs.map(mo=>zaavByM[mo]||0)});
  } else {
  const zaMonthIdx=m===110?[0,1,2]:m===120?[3,4,5]:getCumMonths(m).map(mn=>mn-1);
  const zaMonthLbls=zaMonthIdx.map(i=>['26A','26B','26C','26D','26E','26F','26G','26H','26I'][i]);
  const zaMonthlyData={
- video:zaMonthIdx.map(i=>OV.zaViews[i])
+ video:zaMonthIdx.map(i=>DATA.zaav.filter(d=>d.thang===i+1).reduce((a,d)=>a+d.xem,0))
  };
  if(zaIsQ){
  const q=(m===110)?1:(m-100)/10;
  let zaVLbls,zaVData;
- if(q===1){
- zaVLbls=['25L (Dec)','Quý 1.2026'];
- zaVData=[OV.zaViewsDec25,OV.zaViews.slice(0,3).reduce((a,b)=>a+b,0)];
- } else {
- const ps=(q-2)*3,cs=(q-1)*3;
- zaVLbls=[`Quý ${q-1}.2026`,`Quý ${q}.2026`];
- zaVData=[OV.zaViews.slice(ps,ps+3).reduce((a,b)=>a+b,0),OV.zaViews.slice(cs,cs+3).reduce((a,b)=>a+b,0)];
- }
- chZaMonthly=buildViewsChart('za-monthly',chZaMonthly,zaVLbls,zaVData);
+ const zaavQ=s=>DATA.zaav.filter(d=>d.thang>=s&&d.thang<=s+2).reduce((a,d)=>a+d.xem,0);
+if(q===1){
+zaVLbls=['25L (Dec)','Quý 1.2026'];
+zaVData=[OV.zaViewsDec25,zaavQ(1)];
+} else {
+const ps=(q-2)*3+1,cs=(q-1)*3+1;
+zaVLbls=[`Quý ${q-1}.2026`,`Quý ${q}.2026`];
+zaVData=[zaavQ(ps),zaavQ(cs)];
+}
+chZaMonthly=buildViewsChart('za-monthly',chZaMonthly,zaVLbls,zaVData);
  } else {
  chZaMonthly=buildTtatClusterChart('za-monthly',chZaMonthly,ZA_MONTHLY_METRICS,zaMonthLbls,zaMonthlyData);
  }
