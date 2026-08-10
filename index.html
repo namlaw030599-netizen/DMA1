@@ -2485,14 +2485,14 @@ initColResizers();
 // OVERVIEW — monthly source data (26A-26F, T1-T6/2026)
 // 26D/26E/26F: TikTok, YouTube, Facebook & Zalo đã có số liệu thật Q2
 const OV={
- fbViews:[260683,318188,209553,295128,251061,125686], ttViews:[254706,178205,223933,245546,265634,249592,241071], ytViews:[13385, 14039, 12097, 29304, 11276, 13714],
+ fbViews:[253696,324146,220322,302257,249588,155871], ttViews:[254706,178205,223933,245546,265634,249592,241071], ytViews:[13385,14039,12097,29304,11271,13948],
  ttReach:[217307,148398,187953,211220,233439,213543,201228],
- fbPosts:[111,98,59,61,61,58],
+ fbPosts:[110,98,59,61,61,59],
  ttLeads:[1672,974,1413,1706,2559,2601,2139], appDl:[1020,612,803,894,895,768,716], webClick:[5762,4176,5328,4927,5083,4501,4185], ttFollow:[1115,742,1131,1416,1611,1678,1873],
  fbReachDec25:86129, ytViewsDec25:19352, ttViewsDec25:258696,
- zaViews:[1343,2801,1331,11644,7321,6222], zaInteract:[328,524,13,557,978,636],
+ zaViews:[1343,2801,1331,11644,7321,6222,2551], zaInteract:[328,524,13,557,978,636,12],
  zaViewsDec25:2646, zaInteractDec25:244+87+17,
- zapViews:[757,100,1861,1863,2660,9], zapShare:[4,0,35,21,15,0],
+ zapViews:[719,101,2466,1370,3022,3195,1456], zapShare:[3,0,42,14,15,6,29],
  zapViewsDec25:4076, zapShareDec25:13,
  igViews:[2876,3683,2926,2431,1731,2389,2501], igViewsDec25:6400,
  igAnhViews:[880,908,712,662,527,619,759], igVideoViews:[1996,2775,2214,1769,1204,1770,1742],
@@ -3747,7 +3747,8 @@ function renderZav(m){
  document.getElementById('zak-new-sub').textContent=`${followStart} → ${followEnd} (${followNew>=0?'+':''}${pct}%)`;
  document.getElementById('zak-new-sub').className='kpi-sub '+(followNew>=0?'up':'down');
 
- const zaLike=days.reduce((a,d)=>a+d.thich,0), zaCs=days.reduce((a,d)=>a+d.chiase,0), zaBl=days.reduce((a,d)=>a+d.binhluan,0);
+ const zavDays=DATA.zaav.filter(d=>m===0||getExactMonths(m).includes(d.thang));
+const zaLike=zavDays.reduce((a,d)=>a+d.thich,0), zaCs=zavDays.reduce((a,d)=>a+d.chiase,0), zaBl=zavDays.reduce((a,d)=>a+d.binhluan,0);
  document.getElementById('zak-like').textContent=zaLike.toLocaleString('vi');
  document.getElementById('zak-like-sub').textContent=moTag;
  document.getElementById('zak-cs').textContent=zaCs.toLocaleString('vi');
@@ -3800,12 +3801,12 @@ function renderZav(m){
  if(m===0){
  const zaadMs2=Object.keys(Object.fromEntries([...DATA.zaad].filter(d=>d.thang>0).map(d=>[d.thang,1]))).map(Number).sort((a,b)=>a-b);
  zaPeriodLbls=zaadMs2.map(mo=>months[mo-1]);
- ZA_METRICS.forEach(mt=>{zaDataByMetric[mt.key]=zaadMs2.map(mo=>DATA.zaad.filter(d=>d.thang===mo).reduce((a,d)=>a+(d[mt.key]||0),0));});
+ ZA_METRICS.forEach(mt=>{zaDataByMetric[mt.key]=zaadMs2.map(mo=>DATA.zaav.filter(d=>d.thang===mo).reduce((a,d)=>a+(d[mt.key]||0),0));});
  } else {
  const zaMonthNums=getCumMonths(m);
  zaPeriodLbls=zaMonthNums.map(mn=>mLbl(mn));
  ZA_METRICS.forEach(mt=>{
- zaDataByMetric[mt.key]=zaMonthNums.map(srcM=>DATA.zad.filter(d=>d.thang===srcM).reduce((a,d)=>a+d[mt.key],0));
+ zaDataByMetric[mt.key]=zaMonthNums.map(srcM=>DATA.zaav.filter(d=>d.thang===srcM).reduce((a,d)=>a+d[mt.key],0));
  });
  }
  chZaCluster=buildTtatClusterChart('za-cluster',chZaCluster,ZA_METRICS,zaPeriodLbls,zaDataByMetric);
