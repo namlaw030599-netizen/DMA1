@@ -62,6 +62,15 @@
  .moc-tag { display:inline-block; background:#FEF3C7; color:#92400E; font-weight:700; font-size:9px; padding:2px 6px; border-radius:4px; margin-right:5px; text-transform:uppercase; letter-spacing:.4px; vertical-align:middle; }
  .moc-val { font-weight:700; color:#1E3A5F; }
  .note-card { display:flex; flex-direction:column; height:100%; min-height:0; min-width:0; box-sizing:border-box; }
+ /* Note toggle (collapsible) */
+ .note-card.nc-collapsible.nc-collapsed { display:none!important; }
+ .nc-pencil-host { position:relative; }
+ .nc-pencil-btn { position:absolute; top:10px; right:14px; z-index:9; width:28px; height:28px; background:rgba(248,250,252,0.85); border:1px solid #E2E8F0; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#94A3B8; padding:0; transition:all .15s; }
+ .nc-pencil-btn:hover { color:#2563EB; border-color:#93C5FD; background:#EFF6FF; }
+ .nc-close-btn { margin-left:auto; flex-shrink:0; background:none; border:none; cursor:pointer; font-size:13px; color:#94A3B8; padding:1px 5px; border-radius:4px; line-height:1; }
+ .nc-close-btn:hover { background:#F1F5F9; color:#475569; }
+ .nc-edit-btn { display:inline-flex; align-items:center; margin-left:8px; padding:3px 9px; font-size:11px; font-weight:600; color:#2563EB; background:#EFF6FF; border:1px solid #93C5FD; border-radius:6px; cursor:pointer; line-height:1; }
+ .nc-edit-btn:hover { background:#DBEAFE; }
  .note-wrap { position:relative; width:100%; flex:1; min-height:0; min-width:0; display:flex; }
  .note-box { position:relative; width:100%; flex:1; min-height:60px; max-height:320px; min-width:0; border:1px dashed #CBD5E1; border-radius:8px; padding:10px 36px 10px 10px; font-family:'Aptos',Arial,sans-serif; font-size:12px; color:#1E293B; overflow-y:auto; overflow-x:hidden; overflow-wrap:normal; word-break:normal; resize:none; max-width:100%; background:#F8FAFC; box-sizing:border-box; scrollbar-width:thin; scrollbar-color:#CBD5E1 transparent; }
  .note-box:focus { outline:2px solid #2563EB; border-style:solid; background:#fff; }
@@ -2490,9 +2499,9 @@ const OV={
  fbPosts:[110,98,59,61,61,59],
  ttLeads:[1672,974,1413,1706,2559,2601,2139], appDl:[1020,612,803,894,895,768,716], webClick:[5762,4176,5328,4927,5083,4501,4185], ttFollow:[1115,742,1131,1416,1611,1678,1873],
  fbReachDec25:86129, ytViewsDec25:19352, ttViewsDec25:258696,
- zaViews:[1343,2801,1331,11644,7321,6222,2551], zaInteract:[328,524,13,557,978,636,12],
+ zaViews:[1343,2801,1331,11644,7321,6222], zaInteract:[328,524,13,557,978,636],
  zaViewsDec25:2646, zaInteractDec25:244+87+17,
- zapViews:[719,101,2466,1370,3022,3195,1456], zapShare:[3,0,42,14,15,6,29],
+ zapViews:[719,101,2466,1370,3022,3195], zapShare:[3,0,42,14,15,6],
  zapViewsDec25:4076, zapShareDec25:13,
  igViews:[2876,3683,2926,2431,1731,2389,2501], igViewsDec25:6400,
  igAnhViews:[880,908,712,662,527,619,759], igVideoViews:[1996,2775,2214,1769,1204,1770,1742],
@@ -2511,7 +2520,7 @@ OV.zaViews.push(DATA.zaad.filter(d=>d.thang===7).reduce((a,d)=>a+d.xem,0));
 OV.igViews.push(0);
 OV.zaInteract.push(DATA.zaad.filter(d=>d.thang===7).reduce((a,d)=>a+(d.thich||0)+(d.chiase||0)+(d.binhluan||0),0));
 OV.fbPosts.push(DATA.fbad.filter(p=>p.thang===7&&p.ngay.split('/')[2]==='2026').length);
-OV.zapViews.push(0);OV.zapShare.push(0);
+OV.zapViews.push(1456);OV.zapShare.push(29);
 OV.igAnhViews.push(0);OV.igVideoViews.push(0);
 // Extend OV arrays with August 2026
 OV.fbViews.push(DATA.fbad.filter(p=>p.thang===8&&p.ngay.split('/')[2]==='2026').reduce((a,p)=>a+p.xem,0));
@@ -3736,13 +3745,16 @@ const ZAP_SHARE_METRICS=[{key:'share',label:'Share',color:'#CA8A04'}];
 function renderZav(m){
  const yrZav=document.getElementById('zav-year-sel').value;
  const days=(m===0?DATA.zaad:DATA.zad).filter(d=>d.ngay.split('/')[2]===yrZav&&getExactMonths(m).includes(d.thang));
- const views=days.reduce((a,d)=>a+d.xem,0);
- const interact=days.reduce((a,d)=>a+d.thich+d.chiase+d.binhluan,0);
  const followEnd=days[days.length-1]?days[days.length-1].follow:(FOLLOW.zaloVideo.hd[m]??FOLLOW.zaloVideo.hd[6]??0);
  const followStart=m===0?FOLLOW.zaloVideo.hd[0]:m===110?FOLLOW.zaloVideo.hd[0]:m===120?FOLLOW.zaloVideo.hd[3]:m===130?FOLLOW.zaloVideo.hd[6]:m===1?FOLLOW.zaloVideo.hd[0]:(DATA.zad.filter(d=>d.thang===m-1).slice(-1)[0]?.follow??FOLLOW.zaloVideo.hd[Math.max(0,m-2)]??0);
  const followNew=followEnd-followStart;
  const pct=followStart?(followNew/followStart*100).toFixed(2):'0.00';
  const moTag=m===0?'Toàn bộ':m===110?'Q1':m===120?'Q2':m===130?'Q3':mLbl(m);
+
+ const zavDays=DATA.zaav.filter(d=>m===0||getExactMonths(m).includes(d.thang));
+ const views=zavDays.reduce((a,d)=>a+d.xem,0);
+ const zaLike=zavDays.reduce((a,d)=>a+d.thich,0), zaCs=zavDays.reduce((a,d)=>a+d.chiase,0), zaBl=zavDays.reduce((a,d)=>a+d.binhluan,0);
+ const interact=zaLike+zaCs+zaBl;
 
  document.getElementById('zak-views-lbl').textContent=`Lượt xem ${moTag}`;
  document.getElementById('zak-views').textContent=views.toLocaleString('vi');
@@ -3757,8 +3769,6 @@ function renderZav(m){
  document.getElementById('zak-new-sub').textContent=`${followStart} → ${followEnd} (${followNew>=0?'+':''}${pct}%)`;
  document.getElementById('zak-new-sub').className='kpi-sub '+(followNew>=0?'up':'down');
 
- const zavDays=DATA.zaav.filter(d=>m===0||getExactMonths(m).includes(d.thang));
-const zaLike=zavDays.reduce((a,d)=>a+d.thich,0), zaCs=zavDays.reduce((a,d)=>a+d.chiase,0), zaBl=zavDays.reduce((a,d)=>a+d.binhluan,0);
  document.getElementById('zak-like').textContent=zaLike.toLocaleString('vi');
  document.getElementById('zak-like-sub').textContent=moTag;
  document.getElementById('zak-cs').textContent=zaCs.toLocaleString('vi');
@@ -3901,6 +3911,186 @@ setPlatQuarter('zap',2);
 bindNoteBoxes();
 bindTableToolbars();
 bindTableSave();
+
+(function initNoteToggle(){
+ var platformPage=document.getElementById('page-platform-analysis');
+ var pencilSVG='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+
+ // Helper: get declared grid-template-columns (inline style or known classes)
+ function getGridCols(grid){
+  var inline=grid.style.gridTemplateColumns;
+  if(inline) return inline;
+  if(grid.classList.contains('chart-grid-2')) return '3fr 1fr';
+  if(grid.classList.contains('chart-grid-3')) return '1fr 1fr 1fr';
+  return null;
+ }
+
+ document.querySelectorAll('.note-card').forEach(function(noteCard){
+  if(platformPage&&platformPage.contains(noteCard)) return;
+  noteCard.classList.add('nc-collapsible');
+  var box=noteCard.querySelector('.note-box');
+
+  // Find chart card (previous sibling .card that is not .note-card) to host pencil
+  var host=noteCard.previousElementSibling;
+  while(host&&(!host.classList.contains('card')||host.classList.contains('note-card'))) host=host.previousElementSibling;
+  if(!host) host=noteCard.parentElement;
+  host.classList.add('nc-pencil-host');
+
+  // Track parent grid for column collapse
+  var parentGrid=noteCard.parentElement;
+  var savedCols=null;
+
+  var pencilBtn=document.createElement('button');
+  pencilBtn.className='nc-pencil-btn';
+  pencilBtn.title='Ghi chú / Nhận xét';
+  pencilBtn.innerHTML=pencilSVG;
+  host.appendChild(pencilBtn);
+
+  function openNote(e){
+   if(e) e.stopPropagation();
+   noteCard.classList.remove('nc-collapsed');
+   // Restore parent grid columns
+   if(savedCols!==null){parentGrid.style.gridTemplateColumns=savedCols;savedCols=null;}
+   if(box) setTimeout(function(){box.focus();},50);
+  }
+  function closeNote(e){
+   if(e) e.stopPropagation();
+   noteCard.classList.add('nc-collapsed');
+   // Collapse grid: remove note column by saving original cols and setting remaining
+   var cols=getGridCols(parentGrid);
+   if(cols){
+    savedCols=parentGrid.style.gridTemplateColumns||cols;
+    var parts=cols.trim().split(/\s+/);
+    parts.pop(); // remove last column (the note card's column)
+    parentGrid.style.gridTemplateColumns=parts.length?parts.join(' '):'1fr';
+   }
+  }
+
+  pencilBtn.addEventListener('click',openNote);
+  var titleEl=noteCard.querySelector('.card-title');
+  if(titleEl){
+   var closeBtn=document.createElement('button');
+   closeBtn.className='nc-close-btn';
+   closeBtn.title='Thu gọn';
+   closeBtn.textContent='✕';
+   titleEl.appendChild(closeBtn);
+   closeBtn.addEventListener('click',closeNote);
+  }
+  closeNote(null);
+ });
+
+ // Toggle Nhận xét column in "So sánh lượt follow với đối thủ" table
+ var compTable=document.querySelector('#ov-comp-tbody');
+ if(compTable){
+  var compCard=compTable.closest('.card');
+  if(compCard){
+   compCard.classList.add('nc-pencil-host');
+   var compPencilBtn=document.createElement('button');
+   compPencilBtn.className='nc-pencil-btn';
+   compPencilBtn.title='Nhận xét';
+   compPencilBtn.innerHTML=pencilSVG;
+   compCard.appendChild(compPencilBtn);
+   var nxColVisible=false;
+   function setNxCol(show){
+    nxColVisible=show;
+    // Toggle th
+    var th=compCard.querySelector('th:last-child');
+    if(th) th.style.display=show?'':'none';
+    // Toggle all td last-child in this table
+    compCard.querySelectorAll('#ov-comp-tbody tr td:last-child').forEach(function(td){td.style.display=show?'':'none';});
+    compPencilBtn.style.color=show?'#2563EB':'';
+    compPencilBtn.style.borderColor=show?'#93C5FD':'';
+    compPencilBtn.style.background=show?'#EFF6FF':'';
+   }
+   compPencilBtn.addEventListener('click',function(){setNxCol(!nxColVisible);});
+   // Default: hide Nhận xét column
+   setNxCol(false);
+   // Re-apply when table re-renders (compRows rewrites tbody)
+   var obs=new MutationObserver(function(){
+    if(!nxColVisible){
+     compCard.querySelectorAll('#ov-comp-tbody tr td:last-child').forEach(function(td){td.style.display='none';});
+    }
+   });
+   obs.observe(compTable,{childList:true});
+  }
+ }
+})();
+
+// Note-box password protection
+(function initNoteProtect(){
+ var PASS='DMA';
+ var unlocked=false;
+ function showPassPrompt(onOk){
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.45);z-index:99999;display:flex;align-items:center;justify-content:center';
+  var box=document.createElement('div');
+  box.style.cssText='background:#fff;border-radius:14px;padding:28px 26px 22px;width:310px;box-shadow:0 12px 40px rgba(0,0,0,0.22)';
+  box.innerHTML=
+   '<div style="font-size:15px;font-weight:700;color:#1e293b;margin-bottom:4px">🔒 Nhập mã khóa</div>'+
+   '<div style="font-size:12px;color:#64748b;margin-bottom:14px">Vui lòng nhập mã khóa để chỉnh sửa Ghi chú / Nhận xét</div>'+
+   '<input id="np-inp" type="password" placeholder="Mã khóa..." autocomplete="off" style="width:100%;padding:9px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:14px;outline:none;box-sizing:border-box">'+
+   '<div id="np-err" style="color:#ef4444;font-size:12px;margin-top:6px;min-height:16px"></div>'+
+   '<div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end">'+
+   '<button id="np-cancel" style="padding:7px 18px;border:1.5px solid #E2E8F0;background:#fff;border-radius:8px;cursor:pointer;font-size:13px;color:#475569">Hủy</button>'+
+   '<button id="np-ok" style="padding:7px 18px;background:#2563EB;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">Xác nhận</button>'+
+   '</div>';
+  ov.appendChild(box);
+  document.body.appendChild(ov);
+  var inp=box.querySelector('#np-inp');
+  var err=box.querySelector('#np-err');
+  setTimeout(function(){inp.focus();},60);
+  function confirm(){
+   if(inp.value===PASS){
+    document.body.removeChild(ov);
+    unlocked=true;
+    document.querySelectorAll('.note-box').forEach(function(nb){
+     nb.setAttribute('contenteditable','true');
+     nb.style.cursor='';
+    });
+    if(onOk) onOk();
+   } else {
+    err.textContent='Mã khóa không đúng, vui lòng thử lại';
+    inp.value='';inp.focus();
+   }
+  }
+  box.querySelector('#np-ok').addEventListener('click',confirm);
+  box.querySelector('#np-cancel').addEventListener('click',function(){document.body.removeChild(ov);});
+  inp.addEventListener('keydown',function(e){
+   if(e.key==='Enter') confirm();
+   if(e.key==='Escape') document.body.removeChild(ov);
+  });
+ }
+ // Lock all note-boxes on load; add Edit button to each note card
+ var editSVG='<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+ document.querySelectorAll('.note-box').forEach(function(nb){
+  nb.setAttribute('contenteditable','false');
+  nb.style.cursor='default';
+  // Find the card-title of the parent note-card
+  var noteCard=nb.closest('.note-card');
+  if(!noteCard) return;
+  var titleEl=noteCard.querySelector('.card-title');
+  if(!titleEl) return;
+  var editBtn=document.createElement('button');
+  editBtn.className='nc-edit-btn';
+  editBtn.title='Chỉnh sửa';
+  editBtn.innerHTML=editSVG+'<span style="margin-left:4px">Edit</span>';
+  titleEl.appendChild(editBtn);
+  editBtn.addEventListener('click',function(e){
+   e.stopPropagation();
+   if(unlocked){
+    nb.setAttribute('contenteditable','true');
+    nb.style.cursor='';
+    nb.focus();
+   } else {
+    showPassPrompt(function(){
+     nb.setAttribute('contenteditable','true');
+     nb.style.cursor='';
+     nb.focus();
+    });
+   }
+  });
+ });
+})();
 
 // Sanitize note-box innerHTML: flatten block elements to inline <br>
 function sanitizeNoteBox(el) {
