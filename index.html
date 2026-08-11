@@ -858,6 +858,14 @@
  <div class="card-title">Danh sách video YouTube <span id="ytv-title-count"></span> <button onclick="exportYTV()" style="margin-left:10px;padding:3px 10px;font-size:11px;font-weight:600;background:#16a34a;color:#fff;border:none;border-radius:6px;cursor:pointer">⬇ Xuất Excel</button></div>
  <div class="tbl-controls">
  <input type="text" class="tbl-search" id="ytv-search" placeholder="🔍 Tìm tiêu đề..." oninput="filterTable('ytv')">
+ <label style="font-size:11px;font-weight:700;color:#64748B">Năm</label>
+ <select class="filter-select" id="ytv-year-sel" onchange="STATE['ytv'].year=this.value||null;setTableQuarter('ytv',+document.getElementById('ytv-filter-quarter-sel').value,'#CC0000')">
+ <option value="">Tất cả năm</option>
+ <option value="2023">2023</option>
+ <option value="2024">2024</option>
+ <option value="2025">2025</option>
+ <option value="2026" selected>2026</option>
+ </select>
  <label style="font-size:11px;font-weight:700;color:#64748B">Quý</label>
  <select class="filter-select" id="ytv-filter-quarter-sel" onchange="setTableQuarter('ytv',+this.value,'#CC0000')">
  <option value="0">Toàn bộ</option>
@@ -2353,6 +2361,7 @@ document.addEventListener('DOMContentLoaded',function(){
  initTable('ttad',DATA.ttad);
  initTable('ytd',DATA.ytd,{sort:'ngay',sortDir:1});
  initTable('ytv',DATA.ytav,{sort:'ngay',sortDir:-1});
+ STATE['ytv'].year='2026';
  setTableQuarter('ytv',2,'#CC0000');
  initTable('zad',DATA.zaad,{sort:'ngay',sortDir:-1});
  initTable('zav',DATA.zaav,{sort:'xem',sortDir:-1});
@@ -2742,7 +2751,7 @@ function exportFB(){
  XLSX.writeFile(wb,'Facebook_Danh_Sach_Bai.xlsx');
 }
 function exportYTV(){
- const rows=STATE['ytv']?STATE['ytv'].filtered:DATA.ytav;
+ const rows=STATE['ytv']?STATE['ytv'].filtered:DATA.ytv;
  const headers=['STT','Ngày','Tiêu đề video','Chủ đề','Lượt xem','Sub+','Thích','Retention','Link'];
  const data=[headers,...rows.map((r,i)=>[i+1,r.ngay,r.tieude,r.chude||'',r.xem,r.sub,r.thich,r.retention,r.url||''])];
  const ws=XLSX.utils.aoa_to_sheet(data);
@@ -3692,15 +3701,15 @@ function renderYt(m){
  const ytIdx=ytIdxRaw.filter(idx=>idx<months.length);
  const ytPeriodLbls=ytIdx.map(idx=>months[idx]);
  let ytPeriodLbls_m0,ytDataByMetric_m0;
- const ytSubByMonth=Array(7).fill(0);
- const ytLikeByMonth=Array(7).fill(0);
- DATA.ytv.forEach(v=>{
- const mo=+v.ngay.split('/')[1];
- if(mo>=1&&mo<=7){ ytSubByMonth[mo-1]+=v.sub; ytLikeByMonth[mo-1]+=v.thich; }
+ const ytSubByMonth={},ytLikeByMonth={};
+ vids.forEach(v=>{
+  const mo=+v.ngay.split('/')[1];
+  ytSubByMonth[mo]=(ytSubByMonth[mo]||0)+(v.sub||0);
+  ytLikeByMonth[mo]=(ytLikeByMonth[mo]||0)+(v.thich||0);
  });
  const ytDataByMetric=m===0?{}:{
- sub:ytIdx.map(idx=>ytSubByMonth[idx]),
- thich:ytIdx.map(idx=>ytLikeByMonth[idx])
+  sub:ytIdx.map(idx=>ytSubByMonth[idx+1]||0),
+  thich:ytIdx.map(idx=>ytLikeByMonth[idx+1]||0)
  };
  if(m===0){
  // Toàn bộ: monthly from DATA.ytad, cluster by month from DATA.ytav
@@ -3709,7 +3718,7 @@ function renderYt(m){
  const ytadMs=Object.keys(ytadByM).map(Number).sort((a,b)=>a-b).filter(mo=>mo<=months.length);
  chYtViews=buildTtatClusterChart('yt-views',chYtViews,YT_VIEWS_METRIC,ytadMs.map(mo=>months[mo-1]),{views:ytadMs.map(mo=>ytadByM[mo]||0)});
  const ytavSubM={},ytavLikeM={};
- DATA.ytav.forEach(v=>{const mo=+v.ngay.split('/')[1];ytavSubM[mo]=(ytavSubM[mo]||0)+(v.sub||0);ytavLikeM[mo]=(ytavLikeM[mo]||0)+(v.thich||0);});
+ DATA.ytav.filter(v=>v.ngay&&v.ngay.split('/')[2]===yrYt).forEach(v=>{const mo=+v.ngay.split('/')[1];ytavSubM[mo]=(ytavSubM[mo]||0)+(v.sub||0);ytavLikeM[mo]=(ytavLikeM[mo]||0)+(v.thich||0);});
  const ytavMs=Object.keys(ytavSubM).map(Number).sort((a,b)=>a-b).filter(mo=>mo<=months.length);
  chYtCluster=buildTtatClusterChart('yt-cluster',chYtCluster,YT_METRICS,ytavMs.map(mo=>months[mo-1]),{sub:ytavMs.map(mo=>ytavSubM[mo]||0),thich:ytavMs.map(mo=>ytavLikeM[mo]||0)});
  } else if(ytIsQ){
