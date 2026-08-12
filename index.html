@@ -824,7 +824,7 @@
  </div>
  </div>
 
- <div id="yt-kpi" class="kpi-row" style="display:grid;gap:12px;margin-bottom:16px;grid-template-columns:repeat(2,1fr)">
+ <div id="yt-kpi" class="kpi-row" style="display:grid;gap:12px;margin-bottom:16px;grid-template-columns:repeat(4,1fr)">
  <div class="kpi-card" style="border-left:4px solid #CC0000">
  <div class="kpi-label">Lượt xem</div>
  <div class="kpi-val sm" id="ytk-views">39,522</div>
@@ -841,6 +841,50 @@
  <div class="kpi-sub neutral" id="ytk-n-sub">—</div>
  </div>
  </div>
+ <div class="kpi-card" style="border-left:4px solid #F59E0B">
+ <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+  <div class="kpi-label" style="margin:0">Người xem mới</div>
+  <div class="kpi-val sm" id="ytk-newv" style="font-size:15px">—</div>
+ </div>
+ <div id="ytk-bar-new" style="height:8px;border-radius:4px;background:#FEF3C7;margin-bottom:4px;overflow:hidden"><div id="ytk-bar-new-fill" style="height:100%;background:#F59E0B;width:0%;border-radius:4px;transition:width .4s"></div></div>
+ <div class="kpi-sub neutral" id="ytk-newv-sub" style="margin-bottom:10px">—</div>
+ <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+  <div class="kpi-label" style="margin:0">Người xem cũ</div>
+  <div class="kpi-val sm" id="ytk-returnv" style="font-size:15px">—</div>
+ </div>
+ <div id="ytk-bar-ret" style="height:8px;border-radius:4px;background:#FEF3C7;overflow:hidden"><div id="ytk-bar-ret-fill" style="height:100%;background:#FBBF24;width:0%;border-radius:4px;transition:width .4s"></div></div>
+ <div class="kpi-sub neutral" id="ytk-returnv-sub">—</div>
+ </div>
+ <div class="kpi-card" style="border-left:4px solid #10B981">
+ <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+  <div class="kpi-label" style="margin:0">Đã đăng ký</div>
+  <div class="kpi-val sm" id="ytk-subv" style="font-size:15px">—</div>
+ </div>
+ <div id="ytk-bar-sub" style="height:8px;border-radius:4px;background:#D1FAE5;margin-bottom:4px;overflow:hidden"><div id="ytk-bar-sub-fill" style="height:100%;background:#10B981;width:0%;border-radius:4px;transition:width .4s"></div></div>
+ <div class="kpi-sub neutral" id="ytk-subv-sub" style="margin-bottom:10px">—</div>
+ <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+  <div class="kpi-label" style="margin:0">Chưa đăng ký</div>
+  <div class="kpi-val sm" id="ytk-nonsubv" style="font-size:15px">—</div>
+ </div>
+ <div id="ytk-bar-nonsub" style="height:8px;border-radius:4px;background:#D1FAE5;overflow:hidden"><div id="ytk-bar-nonsub-fill" style="height:100%;background:#6EE7B7;width:0%;border-radius:4px;transition:width .4s"></div></div>
+ <div class="kpi-sub neutral" id="ytk-nonsubv-sub">—</div>
+ </div>
+ </div>
+ <div class="chart-grid" style="grid-template-columns:3fr 1fr">
+ <div class="card">
+  <div class="card-title">Phân tích khán giả <span id="yt-audience-sub"></span></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+   <div>
+    <div style="font-size:11px;font-weight:700;color:#92400E;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Người xem mới vs Cũ</div>
+    <div class="chart-wrap" style="height:160px"><canvas id="yt-audience-newret"></canvas></div>
+   </div>
+   <div>
+    <div style="font-size:11px;font-weight:700;color:#065F46;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Đã đăng ký vs Chưa</div>
+    <div class="chart-wrap" style="height:160px"><canvas id="yt-audience-sub-ns"></canvas></div>
+   </div>
+  </div>
+ </div>
+ <div class="card note-card"><div class="card-title">Ghi chú / Nhận xét</div><div class="note-wrap"><div class="note-box" contenteditable="true" data-note-scope="yt-audience" data-placeholder="Nhận xét về khán giả..."></div><label class="note-img-btn" title="Chèn ảnh">📷<input type="file" accept="image/*" class="note-img-input" hidden></label></div></div>
  </div>
  <div class="chart-grid" style="grid-template-columns:3fr 1fr">
  <div class="card"><div class="card-title">Lượt xem <span id="yt-views-sub"></span></div><div class="chart-wrap" style="height:220px"><canvas id="yt-views"></canvas></div></div>
@@ -2036,6 +2080,19 @@ DATA.ytd=[...DATA.ytd,...DATA.ytad.filter(d=>d.thang>=7&&d.thang<=9)];
 DATA.ytav=DATA.ytav.filter(function(v){return v.url&&/^https:\/\/youtu\.be\/[A-Za-z0-9_-]{11}$/.test(v.url);});
 // Lọc DATA.ytv chỉ giữ video 2026 (tránh lộn dữ liệu các năm cũ khi lọc theo tháng)
 DATA.ytv=DATA.ytav.filter(function(v){return v.ngay&&v.ngay.split('/')[2]==='2026';});
+// YouTube audience breakdown per month 2026
+// newv/returnv = % New viewers / Returning viewers; subv/nonsubv = % Sub / Non-sub views
+const YT_AUDIENCE=[
+ {thang:1, newv:10394, returnv:2991, subv:402,  nonsubv:12983},
+ {thang:2, newv:11904, returnv:2135, subv:366,  nonsubv:13673},
+ {thang:3, newv:9820,  returnv:2275, subv:334,  nonsubv:11761},
+ {thang:4, newv:26437, returnv:2867, subv:474,  nonsubv:28830},
+ {thang:5, newv:8651,  returnv:2620, subv:537,  nonsubv:10734},
+ {thang:6, newv:10951, returnv:2997, subv:510,  nonsubv:13438},
+ {thang:7, newv:7415,  returnv:2552, subv:397,  nonsubv:9570},
+ {thang:8, newv:4056,  returnv:869,  subv:94,   nonsubv:4831},
+ {thang:9, newv:0,     returnv:0,    subv:0,    nonsubv:0},
+];
 // Facebook gio Pacific→VN và vlookup chude từ TikTok theo ngày
 (function(){
   // 1. Gio US Pacific→VN: PDT(UTC-7)→VN(+7) = +14; PST(UTC-8)→VN = +15
@@ -3687,8 +3744,42 @@ function renderYt(m){
  document.getElementById('ytk-like').textContent=likeAvg.toFixed(0).toLocaleString('vi');
  document.getElementById('ytk-like-sub').textContent=`Tổng ${vids.reduce((a,v)=>a+v.thich,0).toLocaleString('vi')}`;
  document.getElementById('ytk-n').textContent=videoCount.toLocaleString('vi');
+ // New/Returning viewers + Sub/Non-sub views from YT_AUDIENCE
+ const audMonths=getExactMonths(m);
+ const audRows=m===0?YT_AUDIENCE:YT_AUDIENCE.filter(a=>audMonths.includes(a.thang));
+ const totNewv=audRows.reduce((s,a)=>s+a.newv,0);
+ const totRetv=audRows.reduce((s,a)=>s+a.returnv,0);
+ const totSubv=audRows.reduce((s,a)=>s+a.subv,0);
+ const totNonsubv=audRows.reduce((s,a)=>s+a.nonsubv,0);
+ const totNR=totNewv+totRetv; const totSN=totSubv+totNonsubv;
+ function fmtAud(n,tot){if(!n)return'—';const p=tot?Math.round(n/tot*100):0;return n.toLocaleString('vi')+' ('+p+'%)';}
+ document.getElementById('ytk-newv').textContent=fmtAud(totNewv,totNR);
+ document.getElementById('ytk-newv-sub').textContent=totNR?'trên '+totNR.toLocaleString('vi')+' tổng':'—';
+ document.getElementById('ytk-bar-new-fill').style.width=(totNR?Math.round(totNewv/totNR*100):0)+'%';
+ document.getElementById('ytk-returnv').textContent=fmtAud(totRetv,totNR);
+ document.getElementById('ytk-returnv-sub').textContent=totNR?'trên '+totNR.toLocaleString('vi')+' tổng':'—';
+ document.getElementById('ytk-bar-ret-fill').style.width=(totNR?Math.round(totRetv/totNR*100):0)+'%';
+ document.getElementById('ytk-subv').textContent=fmtAud(totSubv,totSN);
+ document.getElementById('ytk-subv-sub').textContent=totSN?'trên '+totSN.toLocaleString('vi')+' tổng':'—';
+ document.getElementById('ytk-bar-sub-fill').style.width=(totSN?Math.round(totSubv/totSN*100):0)+'%';
+ document.getElementById('ytk-nonsubv').textContent=fmtAud(totNonsubv,totSN);
+ document.getElementById('ytk-nonsubv-sub').textContent=totSN?'trên '+totSN.toLocaleString('vi')+' tổng':'—';
+ document.getElementById('ytk-bar-nonsub-fill').style.width=(totSN?Math.round(totNonsubv/totSN*100):0)+'%';
+ // Audience stacked bar charts (% per month)
+ const audActiveRows=audRows.filter(a=>a.newv>0||a.subv>0);
+ const audLabels=audActiveRows.map(a=>'T'+a.thang);
+ const newPcts=audActiveRows.map(a=>{const t=a.newv+a.returnv;return t?+(a.newv/t*100).toFixed(1):0;});
+ const retPcts=audActiveRows.map(a=>{const t=a.newv+a.returnv;return t?+(a.returnv/t*100).toFixed(1):0;});
+ const subPcts=audActiveRows.map(a=>{const t=a.subv+a.nonsubv;return t?+(a.subv/t*100).toFixed(1):0;});
+ const nsubPcts=audActiveRows.map(a=>{const t=a.subv+a.nonsubv;return t?+(a.nonsubv/t*100).toFixed(1):0;});
+ if(window._chYtAudNR){window._chYtAudNR.destroy();}
+ if(window._chYtAudSN){window._chYtAudSN.destroy();}
+ const audBarOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:6}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.raw+'%'}}},scales:{x:{stacked:true,grid:{display:false},ticks:{font:{size:10}}},y:{stacked:true,max:100,ticks:{callback:v=>v+'%',font:{size:10}},grid:{color:'#F1F5F9'}}}};
+ window._chYtAudNR=new Chart(document.getElementById('yt-audience-newret'),{type:'bar',data:{labels:audLabels,datasets:[{label:'Người mới',data:newPcts,backgroundColor:'#F59E0B',borderRadius:2},{label:'Người cũ',data:retPcts,backgroundColor:'#FCD34D',borderRadius:2}]},options:audBarOpts});
+ window._chYtAudSN=new Chart(document.getElementById('yt-audience-sub-ns'),{type:'bar',data:{labels:audLabels,datasets:[{label:'Đã đăng ký',data:subPcts,backgroundColor:'#10B981',borderRadius:2},{label:'Chưa đăng ký',data:nsubPcts,backgroundColor:'#6EE7B7',borderRadius:2}]},options:audBarOpts});
  // ytv table has its own quarter/month filter — not re-init here
  const ytMoTag=m===0?'Toàn bộ':m===110?'Cả Q1':m===120?'Cả Q2':m===130?'Cả Q3':m===140?'Cả Q4':mLbl(m);
+ document.getElementById('yt-audience-sub').textContent=ytMoTag;
  document.getElementById('ytk-n-sub').textContent=ytMoTag;
  document.getElementById('yt-views-sub').textContent=ytMoTag;
  document.getElementById('yt-cluster-sub').textContent=ytMoTag;
