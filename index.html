@@ -4038,7 +4038,11 @@ bindTableSave();
 
   // Track parent grid for column collapse
   var parentGrid=noteCard.parentElement;
-  var savedCols=null;
+  // Store original cols once as data attribute so it's never lost across open/close cycles
+  if(!parentGrid.dataset.origCols){
+   var _oc=getGridCols(parentGrid);
+   if(_oc) parentGrid.dataset.origCols=_oc;
+  }
 
   var pencilBtn=document.createElement('button');
   pencilBtn.className='nc-pencil-btn';
@@ -4049,19 +4053,17 @@ bindTableSave();
   function openNote(e){
    if(e) e.stopPropagation();
    noteCard.classList.remove('nc-collapsed');
-   // Restore parent grid columns
-   if(savedCols!==null){parentGrid.style.gridTemplateColumns=savedCols;savedCols=null;}
+   var origCols=parentGrid.dataset.origCols;
+   if(origCols) parentGrid.style.gridTemplateColumns=origCols;
    if(box) setTimeout(function(){box.focus();},50);
   }
   function closeNote(e){
    if(e) e.stopPropagation();
    noteCard.classList.add('nc-collapsed');
-   // Collapse grid: remove note column by saving original cols and setting remaining
-   var cols=getGridCols(parentGrid);
-   if(cols){
-    savedCols=parentGrid.style.gridTemplateColumns||cols;
-    var parts=cols.trim().split(/\s+/);
-    parts.pop(); // remove last column (the note card's column)
+   var origCols=parentGrid.dataset.origCols;
+   if(origCols){
+    var parts=origCols.trim().split(/\s+/);
+    parts.pop();
     parentGrid.style.gridTemplateColumns=parts.length?parts.join(' '):'1fr';
    }
   }
